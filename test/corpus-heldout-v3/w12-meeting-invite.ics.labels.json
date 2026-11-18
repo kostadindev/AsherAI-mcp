@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "aisha.khalid@fernvalekitchens.example.co.uk",
+      "start": 117,
+      "end": 160
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "priya.raman@fernvalekitchens.example.co.uk",
+      "start": 192,
+      "end": 234
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+44 20 3481 5240",
+      "start": 326,
+      "end": 342
+    }
+  ]
+}

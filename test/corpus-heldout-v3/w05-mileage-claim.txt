@@ -1,0 +1,8 @@
+MILEAGE CLAIM, JANUARY 2026
+Employee: Ravi Menon (payroll no. P-021)
+
+Date        Journey                                   Miles   Rate    Amount
+06/01/2026  Home (CB4 2QW) to client site, Peterborough   38     0.45    17.10
+13/01/2026  Office to Brookfield Interiors, return     24     0.45    10.80
+Total                                                  62             27.90
+Approved by A. Khalid, cost centre CC-104.

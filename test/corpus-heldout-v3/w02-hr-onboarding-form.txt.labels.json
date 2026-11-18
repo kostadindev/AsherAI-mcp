@@ -1,0 +1,46 @@
+{
+  "spans": [
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "19/04/1998",
+      "start": 131,
+      "end": 141
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "JT 44 81 02 B",
+      "start": 171,
+      "end": 184
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "sophie.th@example.org",
+      "start": 214,
+      "end": 235
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900602",
+      "start": 265,
+      "end": 277
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB6 3XL",
+      "start": 325,
+      "end": 332
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900603",
+      "start": 375,
+      "end": 387
+    }
+  ]
+}

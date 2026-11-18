@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB4 2QW",
+      "start": 165,
+      "end": 172
+    }
+  ]
+}

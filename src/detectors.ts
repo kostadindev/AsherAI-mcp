@@ -67,7 +67,18 @@ const ROLE_MAILBOX = new Set([
   'payables', 'receivables', 'treasury', 'compliance', 'legal', 'press', 'media', 'marketing', 'orders', 'purchasing',
   'procurement', 'reception', 'service', 'customerservice', 'customer', 'relationship', 'operations', 'ops', 'it',
   'security', 'privacy', 'dpo', 'webmaster', 'postmaster', 'creditors', 'remittance', 'remittances', 'tax', 'vat', 'audit',
+  'disputes', 'dispute', 'chargebacks', 'payments', 'payment', 'refunds', 'returns', 'claims', 'collections',
+  'bookings', 'accounting', 'bookkeeping', 'events', 'facilities', 'recruitment', 'investors', 'ir', 'cosec',
 ]);
+
+/** Normalise a CSV header ("Date_of_Birth", "birth-date") for label matching. */
+const normHeader = (h: string) => h.toLowerCase().replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim();
+const DOB_HEADER = /^(?:dob|d o b|date of birth|birth ?date|birthday|born|date born)$/;
+const POSTCODE_HEADER = /^(?:post ?code|postal code|zip|zip code|home post ?code)$/;
+/** Columns that show the rows are people. */
+const PERSON_HEADER = /^(?:name|full name|surname|last name|forename|first name|given name|employee|employee name|staff|member|cardholder|guarantor|applicant|tenant|customer name)$/;
+/** A nearby line that names an organisation: letterheads put the company on the line above its address. */
+const ORG_NAME_LINE = /\b(?:plc|ltd|limited|llp|holdings|group plc|bank plc|building society)\b|\bbank\s*$/i;
 const isRoleMailbox = (email: string) => {
   const local = email.split('@')[0].toLowerCase();
   return ROLE_MAILBOX.has(local) || ROLE_MAILBOX.has(local.split(/[._+-]/)[0]);
@@ -103,6 +114,13 @@ function csvHeaderFor(text: string, lineText: string, index: number, lineStart: 
   let col = -1;
   cells.forEach((c, k) => { if (offset >= c.start) col = k; });
   return col >= 0 ? header[col] : null;
+}
+
+/** All column names of the table, if the text is a CSV with a header row. */
+function csvHeaders(text: string): string[] {
+  const firstLine = text.slice(0, text.indexOf('\n') === -1 ? text.length : text.indexOf('\n'));
+  const cols = firstLine.split(',').map((c) => normHeader(c.replace(/"/g, '')));
+  return cols.length >= 3 ? cols : [];
 }
 
 interface Rule {
@@ -207,10 +225,19 @@ const RULES: Rule[] = [
   {
     category: 'cat2', label: 'home address',
     re: /\b(?:GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-Z]{2})\b/g,
-    check: (_v, { text, lineText, lineStart }) => {
+    check: (_v, { text, index, lineText, lineStart }) => {
+      // A postcode column in a table of people (payroll, HR, customer lists) is a home address.
+      const header = csvHeaderFor(text, lineText, index, lineStart);
+      if (header !== null && POSTCODE_HEADER.test(normHeader(header))) {
+        const cols = csvHeaders(text);
+        return cols.some((c) => PERSON_HEADER.test(c)) && !cols.some((c) => /^(?:supplier|vendor|company|business|payee|merchant|branch|site|store)\b/.test(c));
+      }
       // The address is on this line, or (for a letter's address block) on the few lines above.
       const looksLikeStreet = (s: string) => ADDRESS_WORDS.test(s) && /\b\d{1,4}[A-Za-z]?\s+[A-Z][a-z]+/.test(s);
       if (BUSINESS_ADDRESS.test(lineText)) return false;
+      // Letterhead: an organisation's name on one of the two lines above, and nothing marking it as a home.
+      const above = text.slice(0, lineStart).split('\n').slice(-3, -1);
+      if (above.some((l) => ORG_NAME_LINE.test(l)) && !/\b(?:home|residential|current address|lives at|personal)\b/i.test(lineText)) return false;
       if (looksLikeStreet(lineText)) return true;
       const before = text.slice(0, lineStart).split('\n').slice(-4, -1);
       const isBlockLine = lineText.trim().length <= 10; // the postcode stands alone on its line
@@ -223,7 +250,7 @@ const RULES: Rule[] = [
     check: (_v, { text, index, lineText, lineStart }) => {
       // A CSV column headed dob / date of birth.
       const header = csvHeaderFor(text, lineText, index, lineStart);
-      if (header !== null) return DOB_LABEL.test(header) || /^(?:birth|birthday)$/.test(header);
+      if (header !== null) return DOB_HEADER.test(normHeader(header)) || DOB_LABEL.test(normHeader(header));
       // Otherwise the nearest preceding label on the line must be a date-of-birth label:
       // "DOB 02/11/1971" yes; "Date of birth: 1979-03-14   Appointed: 2016-05-01" only for the first date.
       const prefix = text.slice(Math.max(lineStart, index - 40), index);

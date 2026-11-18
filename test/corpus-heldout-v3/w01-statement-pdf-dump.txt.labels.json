@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB7 4HB",
+      "start": 167,
+      "end": 174
+    },
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "30-94-57   Account Number   12345678",
+      "start": 206,
+      "end": 242
+    }
+  ]
+}

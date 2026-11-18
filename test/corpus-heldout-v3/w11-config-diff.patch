@@ -1,0 +1,9 @@
+diff --git a/deploy/.env.production b/deploy/.env.production
+index 3f1a2b9..8c0d4e1 100644
+--- a/deploy/.env.production
++++ b/deploy/.env.production
+@@ -4,7 +4,7 @@
+ LOG_LEVEL=info
+-PAYMENTS_API_SECRET=ps_old_4Kd9Qm2Lx7Vb
++PAYMENTS_API_SECRET=ps_new_8Hn3Wz6Rt1Yc
+ REPORT_SCHEDULE=0 2 * * *

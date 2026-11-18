@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "ps_old_4Kd9Qm2Lx7Vb",
+      "start": 202,
+      "end": 221
+    },
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "ps_new_8Hn3Wz6Rt1Yc",
+      "start": 243,
+      "end": 262
+    }
+  ]
+}

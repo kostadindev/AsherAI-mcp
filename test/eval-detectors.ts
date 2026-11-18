@@ -1,7 +1,7 @@
 /**
  * Precision / recall evaluation of the restricted-data detectors against labelled corpora.
  *
- *   npx tsx test/eval-detectors.ts [dir ...]     (default: test/corpus, test/corpus-heldout-v1, test/corpus-heldout-v2)
+ *   npx tsx test/eval-detectors.ts [dir ...]     (default: test/corpus, test/corpus-heldout-v1, -v2, -v3)
  *
  * A prediction matches a label when the labels are equal and the spans overlap; each label is
  * matched at most once. Exits non-zero if the TUNING corpus (test/corpus) falls below the targets:
@@ -17,7 +17,7 @@ interface Span { label: string; category: string; text: string; start: number; e
 interface Counts { tp: number; fp: number; fn: number }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dirs = process.argv.slice(2).length ? process.argv.slice(2) : [path.join(here, 'corpus'), path.join(here, 'corpus-heldout-v1'), path.join(here, 'corpus-heldout-v2')];
+const dirs = process.argv.slice(2).length ? process.argv.slice(2) : [path.join(here, 'corpus'), path.join(here, 'corpus-heldout-v1'), path.join(here, 'corpus-heldout-v2'), path.join(here, 'corpus-heldout-v3')];
 
 const pct = (x: number) => (Number.isNaN(x) ? '  n/a' : `${(x * 100).toFixed(1).padStart(5)}%`);
 const prf = (c: Counts) => {

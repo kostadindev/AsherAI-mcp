@@ -1,0 +1,12 @@
+NORTHGATE BANK PLC                                   Statement 14 of 2025
+                                                     Page 1 of 2
+MR T ASHBY
+9 ABBEY WALK
+ELY
+CB7 4HB
+                    Sort Code  30-94-57   Account Number   12345678
+Date        Description                         Paid out     Paid in     Balance
+01 DEC      BALANCE BROUGHT FORWARD                                       2,431.18
+03 DEC      CARD PAYMENT TO TESCO STORES 3381      46.20                  2,384.98
+05 DEC      FASTER PAYMENT FERNVALE KITCHENS                  4,812.55    7,197.53
+11 DEC      DIRECT DEBIT COUNCIL TAX REF 0049112    162.00                7,035.53

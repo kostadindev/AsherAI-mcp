@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "Bluebell#78",
+      "start": 175,
+      "end": 186
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900604",
+      "start": 337,
+      "end": 349
+    }
+  ]
+}

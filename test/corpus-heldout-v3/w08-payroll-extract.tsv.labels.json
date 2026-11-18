@@ -1,0 +1,46 @@
+{
+  "spans": [
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "1987-02-14",
+      "start": 60,
+      "end": 70
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB6 2TT",
+      "start": 71,
+      "end": 78
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "JG 10 39 48 C",
+      "start": 79,
+      "end": 92
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "1993-10-30",
+      "start": 116,
+      "end": 126
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "IP28 7DE",
+      "start": 127,
+      "end": 135
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "RN 55 18 23 A",
+      "start": 136,
+      "end": 149
+    }
+  ]
+}

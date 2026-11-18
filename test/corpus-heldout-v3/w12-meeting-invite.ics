@@ -1,0 +1,10 @@
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+SUMMARY:Year-end close review
+DTSTART:20260128T100000Z
+ORGANIZER;CN=Aisha Khalid:mailto:aisha.khalid@fernvalekitchens.example.co.uk
+ATTENDEE;CN=Priya Raman:mailto:priya.raman@fernvalekitchens.example.co.uk
+ATTENDEE;CN=Finance team:mailto:finance@fernvalekitchens.example.co.uk
+DESCRIPTION:Dial in +44 20 3481 5240, meeting ID 812 4471 0091.
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "40-22-18 41235531",
+      "start": 292,
+      "end": 309
+    }
+  ]
+}

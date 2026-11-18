@@ -111,19 +111,21 @@ matches and its span overlaps a labelled span.
 | Corpus | Documents | Labelled items | Precision | Recall |
 |---|---|---|---|---|
 | Tuning (`test/corpus`), used while developing | 40 | 77 | 100% | 100% |
-| Held-out v1 (`test/corpus-heldout-v1`), its misses were then fixed, now a regression set | 10 | 28 | 100% | 100% |
-| Held-out v2 (`test/corpus-heldout-v2`), written after those fixes, never tuned on | 12 | 22 | 90.0% | 81.8% |
+| Held-out v1 (`test/corpus-heldout-v1`), misses fixed, now a regression set | 10 | 28 | 100% | 100% |
+| Held-out v2 (`test/corpus-heldout-v2`), misses fixed, now a regression set | 12 | 22 | 100% | 100% |
+| Held-out v3 (`test/corpus-heldout-v3`), written after those fixes, never tuned on | 12 | 30 | 96.0% | 80.0% |
 
 The tuning corpus gates the run (precision and recall at least 95%, and at least 90% recall for every label
-with five or more items). **Held-out v2 is the honest estimate.** Before v1 was fixed, it scored 100% precision
-and 85.7% recall. One v2 label was corrected after the first run: a sort code and account in a JSON expense
-export were restricted under the policy but had been left unlabelled.
+with five or more items). **Held-out v3 is the honest estimate.** Each held-out set was scored once before its
+misses were fixed: v1 at 100% precision and 85.7% recall, v2 at 90.0% and 81.8%. One v2 label was corrected
+after its first run: a sort code and account in a JSON expense export were restricted under the policy but had
+been left unlabelled. v3 was labelled before any detector ran on it.
 
-Known misses on held-out v2:
-- Role mailboxes outside the built-in list (for example `disputes@`) are flagged as personal.
-- A date-of-birth CSV column headed `date_of_birth` (underscores) is not recognised.
-- A postcode in its own CSV column, with no street on the line, is not flagged as a home address.
-- A business postcode on a letterhead line is flagged when the company name ("plc") is on the line above.
+Known misses on held-out v3:
+- Home addresses written entirely in capitals, as in bank statements ("9 ABBEY WALK").
+- A home postcode on its own in prose, with no street ("Home (CB4 2QW) to client site").
+- Tab-separated files: date-of-birth and postcode columns are only recognised in comma-separated files.
+- Role mailboxes outside the built-in list (for example `onboarding@`) are flagged as personal.
 
 Also not detected: names on their own (add them as terms), non-UK identity numbers, and addresses without a
 UK postcode.
@@ -140,7 +142,7 @@ UK postcode.
 ```bash
 npm install
 npm test        # builds, then: 52 detector cases, scenario smoke test, workspace smoke test
-npm run eval    # precision and recall on the tuning, held-out v1 and held-out v2 corpora
+npm run eval    # precision and recall on the tuning corpus and held-out v1, v2, v3
 npm run corpus  # regenerate the corpora from test/corpus*-src.ts
 ```
 

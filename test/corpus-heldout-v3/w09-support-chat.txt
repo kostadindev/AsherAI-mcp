@@ -1,0 +1,6 @@
+[10:02] Agent (Megan): Thanks for contacting Fernvale support. How can I help?
+[10:03] Customer: I want to pay the balance on order SO-2330 by card
+[10:03] Customer: it's 4000 0566 5566 5556 exp 04/28
+[10:04] Agent (Megan): Please don't share card numbers in chat. I'll send a secure payment link.
+[10:04] Customer: ok, my number is +44 7700 900605 if easier
+[10:05] Agent (Megan): Link sent. Reference PAY-SO-2330.

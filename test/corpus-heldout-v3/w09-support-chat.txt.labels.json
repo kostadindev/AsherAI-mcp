@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "4000 0566 5566 5556",
+      "start": 171,
+      "end": 190
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+44 7700 900605",
+      "start": 333,
+      "end": 348
+    }
+  ]
+}

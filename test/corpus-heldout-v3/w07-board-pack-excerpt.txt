@@ -1,0 +1,6 @@
+BOARD PACK, FEBRUARY 2026, SECTION 3: TREASURY
+
+Cash at 31 January: £58,214 (December: £41,870). Facility headroom £40,000.
+Loan LN-0049 balance £90,000 after the 1 January repayment of £30,000.
+FX: EUR exposure €16,700 hedged at 1.1612. No covenant breaches; leverage 1.4x.
+Proposal: open a deposit account with Northgate Bank plc at 3.1% gross.
