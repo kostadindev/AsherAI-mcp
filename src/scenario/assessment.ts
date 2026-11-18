@@ -11,7 +11,7 @@ export const FILE_TRAP: Readonly<Record<string, StewardshipTrap>> = {
 
 /** Traps that live in one section of an otherwise needed file, keyed "fileId/sectionId". */
 export const SECTION_TRAP: Readonly<Record<string, StewardshipTrap>> = {
-  'emails/kestrel': 'ds_kestrel',
+  'emails/private': 'ds_insideinfo',
   'loan/appendix': 'ds_loanappendix',
 };
 

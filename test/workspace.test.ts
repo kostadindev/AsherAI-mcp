@@ -172,11 +172,22 @@ describe('policy validation (fail closed)', () => {
     ['a non-string pattern', '{"block": ["ok", 3]}'],
     ['a bad term', '{"sensitive_terms": [{"term": "x", "category": "cat3"}]}'],
     ['an unknown mode', '{"mode": "loud"}'],
+    ['an explicit null block', '{"block": null}'],
+    ['explicit null terms', '{"block": [], "sensitive_terms": null}'],
+    ['an explicit null mode', '{"mode": null}'],
+    ['a term too short to match', '{"sensitive_terms": [{"term": " AB ", "category": "cat1"}]}'],
   ])('rejects %s', (_name, body) => {
     const root = tempDir();
     writeFileSync(join(root, POLICY_FILE), body);
     const result = readPolicy(root);
     expect(result.ok).toBe(false);
+  });
+
+  it('never echoes the policy source in a parse error', () => {
+    const root = tempDir();
+    writeFileSync(join(root, POLICY_FILE), '{"sensitive_terms": [{"term": Kestrel, "category": "cat1"}]}');
+    const result = readPolicy(root);
+    expect(result).toEqual({ ok: false, error: 'the policy file is not valid JSON' });
   });
 
   it('saves atomically, leaving no temporary files', () => {

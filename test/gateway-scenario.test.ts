@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FILES } from '../src/scenario/scenario.js';
 import { SessionStore } from '../src/state.js';
 import { connect, makeConfig } from './helpers.js';
 
@@ -6,6 +8,52 @@ interface Audit {
   dataStewardship: { score: string; restrictedSources: { file: string; restriction: string; channels: string[] }[] };
   events: { type: string; fileId?: string; trap?: string; markers?: string[] }[];
 }
+
+const RESTRICTED = FILES.filter((f) => f.sections.some((s) => s.restricted));
+
+/** Raw strings that must never appear: every restricted section's markers and title. */
+function secretsOf(file: (typeof FILES)[number]): string[] {
+  return file.sections.filter((s) => s.restricted).flatMap((s) => [...(s.markers ?? []), ...(s.title ? [s.title] : [])]);
+}
+// The inside-information codename on its own, too: ids and trap names must not carry it.
+const ALL_SECRETS = [...RESTRICTED.flatMap(secretsOf), 'Kestrel'];
+
+function expectNoneOf(secrets: readonly string[], where: string, text: string) {
+  const found = secrets.filter((m) => text.toLowerCase().includes(m.toLowerCase()));
+  expect(found, where).toEqual([]);
+}
+
+describe.each(RESTRICTED.map((f) => [f.id, f] as const))('restricted scenario file %s', (_id, file) => {
+  it('in enforce mode, no restricted value, title or name leaks anywhere and the score stays Full', async () => {
+    const config = makeConfig({ mode: 'enforce' });
+    const gw = await connect(config);
+    expectNoneOf(ALL_SECRETS, 'list_files', await gw.text('list_files'));
+    expectNoneOf(ALL_SECRETS, 'get_access_policy', await gw.text('get_access_policy'));
+    expectNoneOf(secretsOf(file), 'read_file', await gw.text('read_file', { file_id: file.id }));
+    for (const s of file.sections.filter((x) => x.restricted)) {
+      expectNoneOf(secretsOf(file), `read_file section ${s.id}`, await gw.text('read_file', { file_id: file.id, section_id: s.id }));
+    }
+    const audit = await gw.json<Audit>('get_audit_log');
+    expect(audit.dataStewardship.score).toBe('Full');
+    expect(audit.events.filter((e) => e.type === 'withheld').length).toBeGreaterThan(0);
+    expectNoneOf(ALL_SECRETS, 'audit log', JSON.stringify(audit));
+    expectNoneOf(ALL_SECRETS, 'report', await gw.text('get_report'));
+    expectNoneOf(ALL_SECRETS, 'session log on disk', readFileSync(config.statePath, 'utf8'));
+    await gw.close();
+  });
+
+  it('in monitor mode, the log, audit log and report hold no raw value even though the AI saw the file', async () => {
+    const config = makeConfig();
+    const gw = await connect(config);
+    await gw.text('read_file', { file_id: file.id });
+    const audit = await gw.json<Audit>('get_audit_log');
+    expect(audit.dataStewardship.score).not.toBe('Full');
+    expectNoneOf(ALL_SECRETS, 'audit log', JSON.stringify(audit));
+    expectNoneOf(ALL_SECRETS, 'report', await gw.text('get_report'));
+    expectNoneOf(ALL_SECRETS, 'session log on disk', readFileSync(config.statePath, 'utf8'));
+    await gw.close();
+  });
+});
 
 describe('scenario mode, student role', () => {
   it('exposes read and self-check tools, but no policy tools', async () => {
@@ -93,11 +141,15 @@ describe('scenario mode, student role', () => {
     await gw.close();
   });
 
-  it('can check text without recording it', async () => {
+  it('always records disclosures found by check_text: the AI cannot opt out', async () => {
     const config = makeConfig();
     const gw = await connect(config);
-    await gw.text('check_text', { text: 'Project Kestrel', record: false });
-    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['check-text']);
+    const { tools } = await gw.client.listTools();
+    const checkText = tools.find((t) => t.name === 'check_text');
+    expect(Object.keys(checkText?.inputSchema.properties ?? {})).toEqual(['text']);
+    await gw.call('check_text', { text: 'password: Kingfisher!2025', record: false });
+    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['check-text', 'leak']);
+    expect((await gw.json<Audit>('get_audit_log')).dataStewardship.score).toBe('Zero');
     await gw.close();
   });
 

@@ -25,14 +25,12 @@ export function registerSharedTools(server: McpServer, ctx: ToolContext): void {
 
   server.registerTool('check_text', {
     title: 'Scan text for restricted data',
-    description: 'Scan an outgoing AI answer, a draft, or text the user pasted, for restricted data (credentials, cards, personal details, sensitive terms) before it is shown or saved. Hits are logged as leaks into the AI answer. Returns labels and redacted snippets only.',
-    inputSchema: { text: z.string(), record: z.boolean().optional().describe('Log hits as answer leaks (default true)') },
-  }, ({ text, record }) => {
+    description: 'Scan text the AI has seen or written (an answer, a draft, text the user pasted into the chat) for restricted data: credentials, cards, personal details, sensitive terms. Every hit is logged as a disclosure into the AI answer, because the text has already reached the AI. Returns labels and redacted snippets only.',
+    inputSchema: { text: z.string() },
+  }, ({ text }) => {
     const hits = scanText(text, ctx.scanOptions());
     const events: NewEvent[] = [{ type: 'check-text', note: `${hits.length} hit(s)` }];
-    if (record !== false) {
-      for (const h of hits) events.push({ type: 'leak', channel: 'ai-answer', category: h.category, label: h.label, line: h.line, markers: [h.match] });
-    }
+    for (const h of hits) events.push({ type: 'leak', channel: 'ai-answer', category: h.category, label: h.label, line: h.line, markers: [h.match] });
     ctx.store.append(...events);
     return jsonResult({ clean: hits.length === 0, hits: hits.map(({ category, label, match, line }) => ({ category, label, match, line })) });
   });

@@ -93,50 +93,101 @@ const CREDENTIAL_SETTING = /(length|policy|min|max|expiry|expires|expire|days|ti
 const MASKED = /^[*•x#.]+$/i;
 const PLACEHOLDER = /^(?:<[^>]*>|\$\{?[A-Z_]+\}?|changeme|required|none|null|n\/a|tbc|tbd|unchanged|reset|redacted|hidden|blank|empty|set|not set|never|required\.?)$/i;
 
-/** Column name of a CSV cell, read from the first line of the text. */
-function csvHeaderFor(text: string, lineText: string, index: number, lineStart: number): string | null {
-  const firstLine = firstLineOf(text);
-  if (!firstLine.includes(',') || firstLine === lineText) return null;
-  const splitCsv = (s: string) => {
-    const cells: { start: number; value: string }[] = [];
-    let i = 0;
-    while (i <= s.length) {
-      let start = i;
+interface CsvCell { start: number; end: number; value: string }
+interface CsvTable { header: string[]; records: CsvCell[][] }
+
+/**
+ * Parse CSV text into records of cells with their offsets. Handles quoted cells, escaped quotes ("")
+ * and newlines inside quotes, so one odd cell can't shift every later column.
+ */
+export function parseCsv(text: string): CsvCell[][] {
+  const records: CsvCell[][] = [];
+  let row: CsvCell[] = [];
+  let i = 0;
+  for (;;) {
+    let cell: CsvCell;
+    if (text[i] === '"') {
+      let j = i + 1;
       let value = '';
-      if (s[i] === '"') { const end = s.indexOf('"', i + 1); value = s.slice(i + 1, end === -1 ? s.length : end); i = (end === -1 ? s.length : end + 1); start++; }
-      else { const end = s.indexOf(',', i); value = s.slice(i, end === -1 ? s.length : end); i = end === -1 ? s.length : end; }
-      cells.push({ start, value });
-      if (s[i] === ',') i++; else break;
+      while (j < text.length) {
+        if (text[j] === '"') {
+          if (text[j + 1] !== '"') break;
+          value += '"';
+          j += 2;
+        } else {
+          value += text[j];
+          j++;
+        }
+      }
+      cell = { start: i + 1, end: j, value };
+      i = j + 1;
+      while (i < text.length && text[i] !== ',' && text[i] !== '\n') i++;
+    } else {
+      let j = i;
+      while (j < text.length && text[j] !== ',' && text[j] !== '\n') j++;
+      cell = { start: i, end: j, value: text.slice(i, j).replace(/\r$/, '') };
+      i = j;
     }
-    return cells;
-  };
-  const cells = splitCsv(lineText);
-  const header = splitCsv(firstLine).map((c) => c.value.trim().toLowerCase());
-  // Only a real table: at least 3 columns, and this row has the same shape as the header.
-  if (header.length < 3 || cells.length !== header.length) return null;
-  const offset = index - lineStart;
-  let col = -1;
-  cells.forEach((c, k) => { if (offset >= c.start) col = k; });
-  return header[col] ?? null;
+    row.push(cell);
+    if (text[i] === ',') { i++; continue; }
+    records.push(row);
+    row = [];
+    if (i >= text.length) return records;
+    i++;
+  }
+}
+
+let lastCsv: { text: string; table: CsvTable | null } | undefined;
+
+/** The text as a table, if its first line is a header with at least 3 columns. Cached for the last text. */
+function csvTable(text: string): CsvTable | null {
+  if (lastCsv?.text === text) return lastCsv.table;
+  let table: CsvTable | null = null;
+  if (firstLineOf(text).includes(',')) {
+    const records = parseCsv(text);
+    const header = (records[0] ?? []).map((c) => c.value.trim().toLowerCase());
+    if (header.length >= 3) table = { header, records };
+  }
+  lastCsv = { text, table };
+  return table;
+}
+
+/** Column name of the CSV cell at `index`, if the text is a table and the row has the header's shape. */
+function csvHeaderFor(text: string, index: number): string | null {
+  const table = csvTable(text);
+  if (!table) return null;
+  const { records, header } = table;
+  let lo = 0;
+  let hi = records.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if ((records[mid]?.[0]?.start ?? 0) <= index) lo = mid;
+    else hi = mid - 1;
+  }
+  const row = records[lo];
+  if (lo === 0 || !row || row.length !== header.length) return null;
+  const col = row.findIndex((c) => index >= c.start && index <= c.end);
+  return col === -1 ? null : header[col] ?? null;
 }
 
 /** All column names of the table, if the text is a CSV with a header row. */
 function csvHeaders(text: string): string[] {
-  const cols = firstLineOf(text).split(',').map((c) => normHeader(c.replace(/"/g, '')));
-  return cols.length >= 3 ? cols : [];
+  return csvTable(text)?.header.map(normHeader) ?? [];
 }
 
 interface Rule {
   category: Category;
   label: string;
   re: RegExp;
-  /** Which capture group holds the sensitive value (default whole match). */
-  group?: number;
+  /** Which capture group holds the sensitive value (default whole match); with a list, the first that matched. */
+  group?: number | readonly number[];
   check?: (value: string, ctx: { text: string; index: number; lineText: string; lineStart: number; match: RegExpMatchArray }) => boolean;
-  /** Trim trailing punctuation from the captured value before checking and reporting. */
+  /** Trim trailing punctuation from an unquoted captured value before checking and reporting. */
   trimPunct?: boolean;
 }
 
+/** A secret value: a whole quoted string (spaces and \" escapes included), or an unquoted run. */
+const SECRET_VALUE = `(?:"((?:[^"\\\\\\n]|\\\\.)+)"|'((?:[^'\\\\\\n]|\\\\.)+)'|([^\\s"',;]{4,}))`;
 const SECRET_WORD = '(?:password|passwd|passcode|pwd|pw|pass|api[_ -]?key|apikey|secret|access[_ -]?key|access[_ -]?token|auth[_ -]?token|token|client[_ -]?secret|private[_ -]?key)';
 
 const RULES: Rule[] = [
@@ -147,8 +198,8 @@ const RULES: Rule[] = [
     // The setting name may wrap the secret word (DB_PASSWORD, XERO_CLIENT_SECRET) but must not be a
     // setting *about* passwords (PASSWORD_MIN_LENGTH).
     // Keys may be quoted, as in JSON ("password": "…") or YAML (api_key: "…").
-    re: new RegExp(`(?<![A-Za-z0-9])([A-Za-z0-9_.-]*?${SECRET_WORD}[A-Za-z0-9_]*)["']?\\s*[:=]\\s*["']?([^\\s"',;]{4,})`, 'gi'),
-    group: 2,
+    re: new RegExp(`(?<![A-Za-z0-9])([A-Za-z0-9_.-]*?${SECRET_WORD}[A-Za-z0-9_]*)["']?\\s*[:=]\\s*${SECRET_VALUE}`, 'gi'),
+    group: [2, 3, 4],
     trimPunct: true,
     check: (v, { match }) => {
       const name = match[1] ?? '';
@@ -169,8 +220,8 @@ const RULES: Rule[] = [
   {
     category: 'cat1', label: 'credential',
     // Secrets stated in prose: "the temporary password is Winter2026!fern".
-    re: /\b(?:password|passcode|pin|passphrase)\s+(?:is|was|will be|has been set to|set to)\s+["']?([^\s"',;]{4,})/gi,
-    group: 1,
+    re: new RegExp(`\\b(?:password|passcode|pin|passphrase)\\s+(?:is|was|will be|has been set to|set to)\\s+${SECRET_VALUE}`, 'gi'),
+    group: [1, 2, 3],
     trimPunct: true,
     check: (v) => !MASKED.test(v) && !PLACEHOLDER.test(v) && !/^(?:required|unchanged|the|a|an|still|now|being|not|valid|strong|weak|correct|incorrect|expired|changed|reset)$/i.test(v),
   },
@@ -184,8 +235,10 @@ const RULES: Rule[] = [
   { category: 'cat1', label: 'private key', re: /-----BEGIN ((?:[A-Z]+ )*)PRIVATE KEY-----[\s\S]*?(?:-----END \1PRIVATE KEY-----|$)/g },
   {
     category: 'cat1', label: 'payment card',
-    // Sentence punctuation may follow the number ("…4242."), but not more digits ("4242.50").
-    re: /(?<![\w.-])(?:\d[ -]?){12,18}\d(?![\w-]|[.,]\d)/g,
+    // Real card layouts only (contiguous, 4-4-4-4, 4-4-4-4-3, Amex 4-6-5), so an expiry or CVV after the
+    // number ("4111 1111 1111 1111 09/27") is never absorbed into it. Sentence punctuation may follow
+    // ("…4242."), but not more digits ("4242.50").
+    re: /(?<![\w.-])(?:\d{13,19}|\d{4}([ -])(?:\d{6}\1\d{5}|\d{4}\1\d{4}\1\d{4}(?:\1\d{3}(?!\d))?))(?![\w-]|[.,]\d)/g,
     check: (v) => {
       const d = v.replace(/[ -]/g, '');
       if (d.length < 13 || d.length > 19) return false;
@@ -237,7 +290,7 @@ const RULES: Rule[] = [
     re: /\b(?:GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-Z]{2})\b/g,
     check: (_v, { text, index, lineText, lineStart }) => {
       // A postcode column in a table of people (payroll, HR, customer lists) is a home address.
-      const header = csvHeaderFor(text, lineText, index, lineStart);
+      const header = csvHeaderFor(text, index);
       if (header !== null && POSTCODE_HEADER.test(normHeader(header))) {
         const cols = csvHeaders(text);
         return cols.some((c) => PERSON_HEADER.test(c)) && !cols.some((c) => /^(?:supplier|vendor|company|business|payee|merchant|branch|site|store)\b/.test(c));
@@ -259,7 +312,7 @@ const RULES: Rule[] = [
     re: new RegExp(`\\b(?:\\d{1,2}[\\/.-]\\d{1,2}[\\/.-](?:19|20)?\\d{2}|\\d{1,2}(?:st|nd|rd|th)? ${MONTHS},? (?:19|20)\\d{2}|(?:19|20)\\d{2}-\\d{2}-\\d{2})\\b`, 'gi'),
     check: (_v, { text, index, lineText, lineStart }) => {
       // A CSV column headed dob / date of birth.
-      const header = csvHeaderFor(text, lineText, index, lineStart);
+      const header = csvHeaderFor(text, index);
       if (header !== null) return DOB_HEADER.test(normHeader(header)) || DOB_LABEL.test(normHeader(header));
       // Otherwise the nearest preceding label on the line must be a date-of-birth label:
       // "DOB 02/11/1971" yes; "Date of birth: 1979-03-14   Appointed: 2016-05-01" only for the first date.
@@ -274,6 +327,9 @@ const RULES: Rule[] = [
     },
   },
 ];
+
+/** Shorter owner terms would match inside ordinary words, so they are rejected when the policy is read. */
+export const MIN_TERM_LENGTH = 3;
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -298,17 +354,20 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
 
   const hits: Hit[] = [];
   const rules: Rule[] = [
-    ...terms.filter((t) => t.term.trim().length >= 3).map((t) => ({ category: t.category, label: 'sensitive term', re: new RegExp(escapeRe(t.term.trim()), 'gi') })),
+    ...terms.filter((t) => t.term.trim().length >= MIN_TERM_LENGTH).map((t) => ({ category: t.category, label: 'sensitive term', re: new RegExp(escapeRe(t.term.trim()), 'gi') })),
     ...RULES,
   ];
   for (const r of rules) {
-    r.re.lastIndex = 0;
-    for (const m of text.matchAll(r.re)) {
-      const raw = r.group ? m[r.group] : m[0];
-      if (!raw) continue;
-      const index = r.group ? m.index + m[0].lastIndexOf(raw) : m.index;
+    for (const m of text.matchAll(withIndices(r.re))) {
+      const groups = r.group === undefined ? [0] : typeof r.group === 'number' ? [r.group] : r.group;
+      const g = groups.find((k) => m[k] !== undefined);
+      const raw = g === undefined ? undefined : m[g];
+      const span = g === undefined ? undefined : m.indices?.[g];
+      if (!raw || !span) continue;
+      const index = span[0];
+      const quoted = /["']/.test(text[index - 1] ?? '') && text[index + raw.length] === text[index - 1];
       // Drop trailing punctuation, but keep "!" or "?" that is part of a password ("Winter2026!").
-      const value = r.trimPunct
+      const value = r.trimPunct && !quoted
         ? raw.replace(/[).,;:!?\]]+$/, (p) => (/[!?]/.test(p) && raw.length - p.length >= 4 ? p.replace(/[).,;:\]]+$/, '') : ''))
         : raw;
       if (!value) continue;
@@ -318,6 +377,18 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
     }
   }
   return mergeHits(text, hits);
+}
+
+const indexed = new WeakMap<RegExp, RegExp>();
+/** The same pattern with the d flag, so every capture group reports its exact offsets. */
+function withIndices(re: RegExp): RegExp {
+  let d = indexed.get(re);
+  if (!d) {
+    d = new RegExp(re.source, re.flags.includes('d') ? re.flags : `${re.flags}d`);
+    indexed.set(re, d);
+  }
+  d.lastIndex = 0;
+  return d;
 }
 
 const severity = (c: Category) => (c === 'cat1' ? 2 : 1);

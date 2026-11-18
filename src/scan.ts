@@ -1,5 +1,5 @@
 import { detect, mergeHits, redact, redactValue, type Hit, type SensitiveTerm } from './detectors.js';
-import { FILES, scanMarkers } from './scenario/scenario.js';
+import { scanMarkers } from './scenario/scenario.js';
 
 export interface ScanOptions {
   /** Owner-defined sensitive terms (workspace mode). */
@@ -22,11 +22,10 @@ export function scanText(body: string, { terms, scenario }: ScanOptions): Hit[] 
   const hits = detect(body, [...terms]);
   if (!scenario) return hits;
   for (const m of scanMarkers(body)) {
-    const source = FILES.find((f) => f.id === m.fileId)?.name ?? m.fileId;
     for (const index of occurrences(body, m.marker)) {
       hits.push({
         category: m.category,
-        label: `restricted data from ${source}`,
+        label: `restricted data from ${m.fileId}`,
         match: redactValue(m.marker),
         index,
         length: m.marker.length,

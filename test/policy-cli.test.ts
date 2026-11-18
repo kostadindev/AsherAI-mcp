@@ -61,6 +61,14 @@ describe('policy CLI, workspace mode', () => {
     expect(run(['untrm', 'Project Kestrel'], config).out).toBe('No such sensitive term.');
   });
 
+  it('refuses a sensitive term too short to match', () => {
+    const { root, config } = workspaceConfig();
+    const result = run(['term', 'AB', 'cat1'], config);
+    expect(result.code).toBe(1);
+    expect(result.err).toMatch(/at least 3 characters/);
+    expect(loadPolicy(root).sensitive_terms).toEqual([]);
+  });
+
   it('sets the mode', () => {
     const { root, config } = workspaceConfig();
     expect(run(['mode', 'enforce'], config).out).toBe('Mode: enforce');

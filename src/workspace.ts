@@ -9,7 +9,7 @@
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync, type Stats } from 'node:fs';
 import { extname, join, posix, relative, resolve, sep } from 'node:path';
 import { POLICY_FILE, type Mode } from './config.js';
-import type { SensitiveTerm } from './detectors.js';
+import { MIN_TERM_LENGTH, type SensitiveTerm } from './detectors.js';
 import { writeFileAtomic } from './fs.js';
 
 export interface Policy {
@@ -25,29 +25,40 @@ export type PolicyResult = { ok: true; policy: Policy } | { ok: false; error: st
 const isTerm = (t: unknown): t is SensitiveTerm =>
   typeof t === 'object' && t !== null
   && typeof (t as SensitiveTerm).term === 'string'
+  && (t as SensitiveTerm).term.trim().length >= MIN_TERM_LENGTH
   && ((t as SensitiveTerm).category === 'cat1' || (t as SensitiveTerm).category === 'cat2');
 
-/** Validate a parsed policy document. Any malformed field makes the whole policy invalid. */
+/**
+ * Validate a parsed policy document. Any malformed field makes the whole policy invalid; only an absent
+ * field takes its default, an explicit null does not. Errors name the field, never its contents.
+ */
 function validatePolicy(raw: unknown): PolicyResult {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ok: false, error: 'the policy must be a JSON object' };
   const doc = raw as Record<string, unknown>;
-  const block = doc.block ?? [];
-  const terms = doc.sensitive_terms ?? [];
+  const block = 'block' in doc ? doc.block : [];
+  const terms = 'sensitive_terms' in doc ? doc.sensitive_terms : [];
   if (!Array.isArray(block) || !block.every((g) => typeof g === 'string')) return { ok: false, error: '"block" must be a list of path patterns' };
-  if (!Array.isArray(terms) || !terms.every(isTerm)) return { ok: false, error: '"sensitive_terms" must be a list of { "term", "category": "cat1" | "cat2" }' };
-  if (doc.mode !== undefined && doc.mode !== 'monitor' && doc.mode !== 'enforce') return { ok: false, error: '"mode" must be "monitor" or "enforce"' };
-  return { ok: true, policy: { block, sensitive_terms: terms, mode: doc.mode } };
+  if (!Array.isArray(terms) || !terms.every(isTerm)) return { ok: false, error: `"sensitive_terms" must be a list of { "term" (at least ${MIN_TERM_LENGTH} characters), "category": "cat1" | "cat2" }` };
+  if ('mode' in doc && doc.mode !== 'monitor' && doc.mode !== 'enforce') return { ok: false, error: '"mode" must be "monitor" or "enforce"' };
+  return { ok: true, policy: { block, sensitive_terms: terms, mode: doc.mode as Mode | undefined } };
 }
 
 /** Read the owner's policy. A missing file means no restrictions; anything unreadable or invalid is an error. */
 export function readPolicy(root: string): PolicyResult {
   const path = join(root, POLICY_FILE);
   if (!existsSync(path)) return { ok: true, policy: emptyPolicy() };
+  let source: string;
+  try {
+    source = readFileSync(path, 'utf8');
+  } catch {
+    return { ok: false, error: 'the policy file could not be read' };
+  }
   let raw: unknown;
   try {
-    raw = JSON.parse(readFileSync(path, 'utf8'));
-  } catch (e) {
-    return { ok: false, error: `${POLICY_FILE} could not be read: ${(e as Error).message}` };
+    raw = JSON.parse(source);
+  } catch {
+    // The parser's message can quote the source, and the source holds the owner's sensitive terms.
+    return { ok: false, error: 'the policy file is not valid JSON' };
   }
   const result = validatePolicy(raw);
   return result.ok ? result : { ok: false, error: `${POLICY_FILE} is invalid: ${result.error}` };

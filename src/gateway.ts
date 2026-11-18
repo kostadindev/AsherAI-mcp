@@ -11,7 +11,7 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GatewayConfig, Mode } from './config.js';
-import { FILES, SCENARIO, fileRestriction } from './scenario/scenario.js';
+import { FILES, SCENARIO, displayName, fileRestriction } from './scenario/scenario.js';
 import { SessionStore } from './state.js';
 import type { SourceInfo, ToolContext } from './tools/context.js';
 import { registerScenarioTools } from './tools/scenario.js';
@@ -30,7 +30,7 @@ export function effectiveMode(config: GatewayConfig): Mode {
 
 function scenarioSource(fileId: string): SourceInfo | undefined {
   const file = FILES.find((f) => f.id === fileId);
-  return file ? { name: file.name, restriction: fileRestriction(file) } : undefined;
+  return file ? { name: displayName(file), restriction: fileRestriction(file) } : undefined;
 }
 
 export function createGateway(config: GatewayConfig): McpServer {

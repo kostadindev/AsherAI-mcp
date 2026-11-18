@@ -187,6 +187,44 @@ describe('workspace mode', () => {
     await gw.close();
   });
 
+  describe('a file whose name holds restricted data', () => {
+    const NAME = 'priya.raman@example.co.uk JR 48 31 22 C.txt';
+    const RAW_PARTS = ['priya.raman@example.co.uk', 'JR 48 31 22 C'];
+    const setup = (mode: 'monitor' | 'enforce') => {
+      const { root, config } = workspace();
+      writeFileSync(join(root, NAME), 'Notes from the onboarding call.\n');
+      savePolicy(root, { block: ['nope.txt'], sensitive_terms: [], mode });
+      return { root, config };
+    };
+    const expectClean = (where: string, text: string) => {
+      for (const raw of RAW_PARTS) expect(text, where).not.toContain(raw);
+    };
+
+    it('in monitor mode is listed and read, but logged and reported under a redacted name', async () => {
+      const { config } = setup('monitor');
+      const gw = await connect(config);
+      expect(await gw.text('list_files')).toContain(NAME);
+      expect((await gw.call('read_file', { path: NAME })).isError).toBeUndefined();
+      await gw.call('read_file', { path: 'nope.txt' });
+      expectClean('session log', readFileSync(config.statePath, 'utf8'));
+      expectClean('audit log', await gw.text('get_audit_log'));
+      expectClean('report', await gw.text('get_report'));
+      await gw.close();
+    });
+
+    it('in enforce mode is neither listed nor read, and nothing raw is logged', async () => {
+      const { config } = setup('enforce');
+      const gw = await connect(config);
+      expectClean('list_files', await gw.text('list_files'));
+      const read = await gw.call('read_file', { path: NAME });
+      expect(read.isError).toBe(true);
+      expectClean('read_file refusal', first(read.content).text);
+      expectClean('session log', readFileSync(config.statePath, 'utf8'));
+      expectClean('audit log', await gw.text('get_audit_log'));
+      await gw.close();
+    });
+  });
+
   it('never stores or reports raw restricted values', async () => {
     const { config } = workspace();
     const gw = await connect(config);

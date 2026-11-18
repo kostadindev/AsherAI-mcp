@@ -15,7 +15,7 @@
  */
 import { join } from 'node:path';
 import { POLICY_FILE, type GatewayConfig } from './config.js';
-import { redactValue } from './detectors.js';
+import { MIN_TERM_LENGTH, redactValue } from './detectors.js';
 import { FILES } from './scenario/scenario.js';
 import { SessionStore } from './state.js';
 import { readPolicy, savePolicy, workspaceAccess } from './workspace.js';
@@ -79,6 +79,10 @@ function workspaceCommand(root: string, cmd: string | undefined, args: string[],
     case 'term': {
       const [term, category] = args;
       if (!term || (category !== 'cat1' && category !== 'cat2')) return usage(io, WORKSPACE_USAGE, cmd);
+      if (term.trim().length < MIN_TERM_LENGTH) {
+        io.err(`A sensitive term must be at least ${MIN_TERM_LENGTH} characters; shorter ones would match inside ordinary words.`);
+        return 1;
+      }
       policy.sensitive_terms = [...policy.sensitive_terms.filter((t) => t.term !== term), { term, category }];
       savePolicy(root, policy);
       changed(`sensitive term added (${category})`);

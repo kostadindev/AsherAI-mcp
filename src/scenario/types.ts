@@ -36,4 +36,4 @@ export interface VFile {
 
 /** Data-stewardship traps the scenario plants in files. */
 export type StewardshipTrap =
-  | 'ds_otherclient' | 'ds_kestrel' | 'ds_passports' | 'ds_logins' | 'ds_payroll' | 'ds_loanappendix' | 'ds_creditmemo';
+  | 'ds_otherclient' | 'ds_insideinfo' | 'ds_passports' | 'ds_logins' | 'ds_payroll' | 'ds_loanappendix' | 'ds_creditmemo';

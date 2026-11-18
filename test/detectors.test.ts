@@ -7,44 +7,56 @@ const TERMS: SensitiveTerm[] = [
   { term: 'Larchmont Homes', category: 'cat2' },
 ];
 
-const POSITIVE: [text: string, label: string, category: Category][] = [
-  ['password: Kingfisher!2025', 'credential', 'cat1'],
-  ['db_password = s3cr3tValue', 'credential', 'cat1'],
-  ['pw: Bluebell#77', 'credential', 'cat1'],
-  ['API_KEY=abcd1234efgh5678', 'credential', 'cat1'],
-  ['client_secret: "zX9-qq_771mm"', 'credential', 'cat1'],
-  ['{"password": "Winter2026!fern"}', 'credential', 'cat1'],
-  ['the temporary password is Winter2026!fern', 'credential', 'cat1'],
-  ['aws key AKIAIOSFODNN7EXAMPLE in config', 'credential', 'cat1'],
-  ['OPENAI=sk-proj_abcdefghijklmnopqrstuvwx', 'credential', 'cat1'],
-  ['token ghp_ABCDEFGHIJKLMNOPQRSTUVWXyz0123', 'credential', 'cat1'],
-  ['Authorization: Bearer abcdefghijklmnop0123456789', 'credential', 'cat1'],
-  ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl', 'credential', 'cat1'],
-  ['-----BEGIN RSA PRIVATE KEY-----', 'private key', 'cat1'],
-  ['Card 4111 1111 1111 1111 exp 09/27', 'payment card', 'cat1'],
-  ['Paid with 4111111111111111.', 'payment card', 'cat1'],
-  ['mastercard 5555555555554444', 'payment card', 'cat1'],
-  ['amex 3782-822463-10005', 'payment card', 'cat1'],
-  ['UK passport no. 553829174', 'passport number', 'cat1'],
-  ['Passport: 761204338 (expires 2029)', 'passport number', 'cat1'],
-  ['Strictly private: Project Kestrel offer at 412p', 'sensitive term', 'cat1'],
-  ['Contact priya.raman@example.co.uk for the pack', 'email', 'cat2'],
-  ['Call 07700 900123 after 5pm', 'phone number', 'cat2'],
-  ['Office: 020 7946 0018', 'phone number', 'cat2'],
-  ['Tel +44 (0) 1223 456789', 'phone number', 'cat2'],
-  ['US desk +1 415 555 0132', 'phone number', 'cat2'],
-  ['NI number JR 48 31 22 C', 'national insurance number', 'cat2'],
-  ['ni: PK196047A', 'national insurance number', 'cat2'],
-  ['14 Larkspur Close, Cherry Hinton, Cambridge CB1 9XY', 'home address', 'cat2'],
-  ['lives at 27 Orchard Rise, Bury St Edmunds IP33 3AB', 'home address', 'cat2'],
-  ['Pay to GB82 WEST 1234 5698 7654 32', 'IBAN', 'cat2'],
-  ['sort code 40-22-18 account 31926819', 'bank account', 'cat2'],
-  ['Sort code: 20-45-77\nAccount number: 63849217', 'bank account', 'cat2'],
-  ['A/C no: 63849217', 'bank account', 'cat2'],
-  ['DOB 14/03/1979', 'date of birth', 'cat2'],
-  ['born 2 November 1971 in Ely', 'date of birth', 'cat2'],
-  ['Customer: Larchmont Homes', 'sensitive term', 'cat2'],
+/** Text, label, category, and the exact value the hit must cover: no more, no less. */
+const POSITIVE: [text: string, label: string, category: Category, value: string][] = [
+  ['password: Kingfisher!2025', 'credential', 'cat1', 'Kingfisher!2025'],
+  ['db_password = s3cr3tValue', 'credential', 'cat1', 's3cr3tValue'],
+  ['pw: Bluebell#77', 'credential', 'cat1', 'Bluebell#77'],
+  ['API_KEY=abcd1234efgh5678', 'credential', 'cat1', 'abcd1234efgh5678'],
+  ['client_secret: "zX9-qq_771mm"', 'credential', 'cat1', 'zX9-qq_771mm'],
+  ['{"password": "Winter2026!fern"}', 'credential', 'cat1', 'Winter2026!fern'],
+  ['password: "correct horse battery staple"', 'credential', 'cat1', 'correct horse battery staple'],
+  ['password = "abc def ghi"', 'credential', 'cat1', 'abc def ghi'],
+  ['{"secret": "say \\"open\\" now, ok."}', 'credential', 'cat1', 'say \\"open\\" now, ok.'],
+  ["api_key: 'k3y with spaces'", 'credential', 'cat1', 'k3y with spaces'],
+  ['the temporary password is Winter2026!fern', 'credential', 'cat1', 'Winter2026!fern'],
+  ['the new password is "open sesame 42".', 'credential', 'cat1', 'open sesame 42'],
+  ['aws key AKIAIOSFODNN7EXAMPLE in config', 'credential', 'cat1', 'AKIAIOSFODNN7EXAMPLE'],
+  ['OPENAI=sk-proj_abcdefghijklmnopqrstuvwx', 'credential', 'cat1', 'sk-proj_abcdefghijklmnopqrstuvwx'],
+  ['token ghp_ABCDEFGHIJKLMNOPQRSTUVWXyz0123', 'credential', 'cat1', 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXyz0123'],
+  ['Authorization: Bearer abcdefghijklmnop0123456789', 'credential', 'cat1', 'abcdefghijklmnop0123456789'],
+  ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl', 'credential', 'cat1', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl'],
+  ['-----BEGIN RSA PRIVATE KEY-----', 'private key', 'cat1', '-----BEGIN RSA PRIVATE KEY-----'],
+  ['Card 4111 1111 1111 1111 exp 09/27', 'payment card', 'cat1', '4111 1111 1111 1111'],
+  ['Card 4111 1111 1111 1111 09/27', 'payment card', 'cat1', '4111 1111 1111 1111'],
+  ['card 4111-1111-1111-1111 0927 CVV 123', 'payment card', 'cat1', '4111-1111-1111-1111'],
+  ['Paid with 4111111111111111.', 'payment card', 'cat1', '4111111111111111'],
+  ['mastercard 5555555555554444', 'payment card', 'cat1', '5555555555554444'],
+  ['amex 3782-822463-10005', 'payment card', 'cat1', '3782-822463-10005'],
+  ['UK passport no. 553829174', 'passport number', 'cat1', '553829174'],
+  ['Passport: 761204338 (expires 2029)', 'passport number', 'cat1', '761204338'],
+  ['Strictly private: Project Kestrel offer at 412p', 'sensitive term', 'cat1', 'Project Kestrel'],
+  ['Contact priya.raman@example.co.uk for the pack', 'email', 'cat2', 'priya.raman@example.co.uk'],
+  ['Call 07700 900123 after 5pm', 'phone number', 'cat2', '07700 900123'],
+  ['Office: 020 7946 0018', 'phone number', 'cat2', '020 7946 0018'],
+  ['Tel +44 (0) 1223 456789', 'phone number', 'cat2', '+44 (0) 1223 456789'],
+  ['US desk +1 415 555 0132', 'phone number', 'cat2', '+1 415 555 0132'],
+  ['NI number JR 48 31 22 C', 'national insurance number', 'cat2', 'JR 48 31 22 C'],
+  ['ni: PK196047A', 'national insurance number', 'cat2', 'PK196047A'],
+  ['14 Larkspur Close, Cherry Hinton, Cambridge CB1 9XY', 'home address', 'cat2', 'CB1 9XY'],
+  ['lives at 27 Orchard Rise, Bury St Edmunds IP33 3AB', 'home address', 'cat2', 'IP33 3AB'],
+  ['Pay to GB82 WEST 1234 5698 7654 32', 'IBAN', 'cat2', 'GB82 WEST 1234 5698 7654 32'],
+  ['sort code 40-22-18 account 31926819', 'bank account', 'cat2', '40-22-18 account 31926819'],
+  ['Sort code: 20-45-77\nAccount number: 63849217', 'bank account', 'cat2', '20-45-77\nAccount number: 63849217'],
+  ['A/C no: 63849217', 'bank account', 'cat2', 'A/C no: 63849217'],
+  ['DOB 14/03/1979', 'date of birth', 'cat2', '14/03/1979'],
+  ['born 2 November 1971 in Ely', 'date of birth', 'cat2', '2 November 1971'],
+  ['Customer: Larchmont Homes', 'sensitive term', 'cat2', 'Larchmont Homes'],
 ];
+
+/** The exact text each hit covers. */
+const covered = (text: string, terms: SensitiveTerm[] = []) =>
+  detect(text, terms).map((h) => ({ label: h.label, category: h.category, value: text.slice(h.index, h.index + h.length) }));
 
 const NEGATIVE: string[] = [
   'The password policy says passwords must be 12 characters.',
@@ -75,8 +87,8 @@ const NEGATIVE: string[] = [
 ];
 
 describe('detect', () => {
-  it.each(POSITIVE)('flags %j', (text, label, category) => {
-    expect(detect(text, TERMS)).toContainEqual(expect.objectContaining({ label, category }));
+  it.each(POSITIVE)('flags %j, covering exactly the value', (text, label, category, value) => {
+    expect(covered(text, TERMS)).toContainEqual({ label, category, value });
   });
 
   it.each(NEGATIVE)('does not flag %j', (text) => {
@@ -109,14 +121,27 @@ describe('detect', () => {
     expect(first(hits).category).toBe('cat1');
   });
 
-  it('reads date-of-birth columns from a CSV header in any spelling', () => {
+  it('reads date-of-birth columns from a CSV header in any spelling, and only that column', () => {
     const csv = 'name,start_date,Date_of_Birth,team\nLeah Morgan,2025-02-03,1994-07-12,Audit\n';
-    expect(detect(csv).map((h) => h.label)).toContain('date of birth');
+    expect(covered(csv).filter((h) => h.label === 'date of birth').map((h) => h.value)).toEqual(['1994-07-12']);
   });
 
   it('treats a postcode column in a table of people as a home address', () => {
     const csv = 'name,role,postcode\nLeah Morgan,Analyst,CB4 2QW\n';
-    expect(detect(csv).map((h) => h.label)).toContain('home address');
+    expect(covered(csv)).toContainEqual({ label: 'home address', category: 'cat2', value: 'CB4 2QW' });
+  });
+
+  it('keeps CSV columns aligned across escaped quotes', () => {
+    const csv = 'name,note,dob,postcode\nLeah Morgan,"said ""hello"", then left",1994-07-12,CB4 2QW\n';
+    const values = covered(csv).map((h) => `${h.label}=${h.value}`);
+    expect(values).toContain('date of birth=1994-07-12');
+    expect(values).toContain('home address=CB4 2QW');
+  });
+
+  it('keeps CSV columns aligned across quoted newlines', () => {
+    const csv = 'name,note,dob,postcode\nLeah Morgan,"line one\nline two",1994-07-12,CB4 2QW\nTom Reid,ok,1984-11-02,YO1 7HU\n';
+    const values = covered(csv).map((h) => `${h.label}=${h.value}`);
+    expect(values).toEqual(expect.arrayContaining(['date of birth=1994-07-12', 'home address=CB4 2QW', 'date of birth=1984-11-02', 'home address=YO1 7HU']));
   });
 
   it('does not treat a supplier postcode column as a home address', () => {
@@ -125,8 +150,8 @@ describe('detect', () => {
   });
 
   it('only flags a date as a birth date when the nearest label is a birth label', () => {
-    const labels = detect('Date of birth: 1979-03-14   Appointed: 2016-05-01').filter((h) => h.label === 'date of birth');
-    expect(labels).toHaveLength(1);
+    const dates = covered('Date of birth: 1979-03-14   Appointed: 2016-05-01').filter((h) => h.label === 'date of birth');
+    expect(dates.map((h) => h.value)).toEqual(['1979-03-14']);
   });
 });
 
@@ -170,8 +195,8 @@ describe('overlapping detections', () => {
 
 describe('date of birth', () => {
   it('does not flag a second date after the birth date on the same line', () => {
-    const labels = detect('Date of birth: 1979-03-14, 2016-05-01').filter((h) => h.label === 'date of birth');
-    expect(labels).toHaveLength(1);
+    const dates = covered('Date of birth: 1979-03-14, 2016-05-01').filter((h) => h.label === 'date of birth');
+    expect(dates.map((h) => h.value)).toEqual(['1979-03-14']);
   });
 });
 
