@@ -48,6 +48,7 @@ It ends with `Demo complete.` and the command for step 2. The folder is kept; re
 ### 2. Connect a real agent to the demo folder
 
 ```bash
+TRIALRUN_WORKSPACE="$PWD/trialrun-demo" npx -y -p github:kostadindev/trialrun-mcp trialrun-policy reset   # clear the demo's log, keep the policy
 claude mcp add trialrun -e TRIALRUN_WORKSPACE="$PWD/trialrun-demo" -- npx -y github:kostadindev/trialrun-mcp
 claude
 ```
