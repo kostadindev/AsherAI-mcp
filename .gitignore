@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.trialrun-session.json
+trialrun-session.json

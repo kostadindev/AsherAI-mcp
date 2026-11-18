@@ -1,0 +1,42 @@
+{
+  "name": "trialrun-mcp",
+  "version": "0.1.0",
+  "description": "An MCP gateway that assesses data stewardship and AI-literacy habits while any MCP agent works on your files.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "trialrun-mcp": "dist/server.js",
+    "trialrun-policy": "dist/policy.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "npm run build && tsx test/detectors.test.ts && tsx test/smoke.ts && tsx test/smoke-workspace.ts",
+    "start": "node dist/server.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-literacy",
+    "data-protection",
+    "assessment",
+    "education"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "4.23.15",
+    "typescript": "5.8.3"
+  }
+}
