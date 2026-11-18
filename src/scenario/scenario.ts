@@ -1,4 +1,4 @@
-import type { VFile } from './types.js';
+import type { Category, VFile } from './types.js';
 
 /**
  * Scenario: Calder Wren Bank, junior analyst. Client: Fernvale Kitchens Ltd.
@@ -8,7 +8,6 @@ export const SCENARIO = {
   bank: 'Calder Wren Bank',
   client: 'Fernvale Kitchens Ltd',
   yearEnd: '31 December 2025',
-  minutes: 15,
 };
 
 export const FOLDERS = ['Year-end 2025', 'Bank & Loan', 'Other'] as const;
@@ -25,7 +24,7 @@ export const FILES: VFile[] = [
     sections: [
       {
         id: 'main',
-        title: 'Fernvale Kitchens Ltd — Trial balance at 31 December 2025 (before year-end adjustments)',
+        title: 'Fernvale Kitchens Ltd (VAT reg. GB 318 2214 60) — Trial balance at 31 December 2025 (before year-end adjustments)',
         blocks: [
           {
             kind: 'table',
@@ -73,7 +72,7 @@ export const FILES: VFile[] = [
     folder: 'Year-end 2025',
     kind: 'sheet',
     role: 'needed',
-    why: 'Plant depreciation 24,000 given. Laptop useful life left blank — a judgement call (3–5 yrs). AI defaults to 20 years.',
+    why: 'Plant depreciation 24,000 given. Laptop useful life left blank — a judgement call (3–5 yrs). AI applies the 10-year plant policy.',
     sections: [
       {
         id: 'register',
@@ -114,7 +113,7 @@ export const FILES: VFile[] = [
     folder: 'Year-end 2025',
     kind: 'pdf',
     role: 'needed',
-    why: 'Repair restoring original condition — expense. AI suggests capitalising as a leasehold improvement.',
+    why: 'Like-for-like repair after storm damage — expense. AI suggests capitalising as a leasehold improvement because of the trusses.',
     sections: [
       {
         id: 'main',
@@ -125,7 +124,7 @@ export const FILES: VFile[] = [
             rows: [
               ['Invoice date', '14 November 2025'],
               ['Customer', 'Fernvale Kitchens Ltd, Unit 4 Marsh Lane Trading Estate'],
-              ['Work', 'Emergency repair to storm-damaged section of leased warehouse roof: replace 40 slates, lead flashing and two broken trusses like-for-like. Restores the roof to its original condition. No extension or improvement.'],
+              ['Work', 'Storm damage, leased warehouse roof: replace 40 damaged slates, lead flashing and two broken trusses like-for-like.'],
               ['Net', '£18,000.00'],
               ['VAT 20%', '£3,600.00 (reclaimed)'],
               ['Total', '£21,600.00'],
@@ -151,6 +150,7 @@ export const FILES: VFile[] = [
             kind: 'kv',
             rows: [
               ['Invoice date', '9 January 2026'],
+              ['Customer', 'Fernvale Kitchens Ltd, VAT no. GB 318 2214 60'],
               ['Supply period', '1–31 December 2025'],
               ['Energy charge (net)', '£2,400.00'],
               ['VAT 20%', '£480.00'],
@@ -158,7 +158,6 @@ export const FILES: VFile[] = [
               ['Status', 'Received January 2026 — not posted in 2025 ledgers'],
             ],
           },
-          { kind: 'p', text: 'Fernvale Kitchens Ltd is VAT-registered (VAT no. GB 318 2214 60) and reclaims input VAT.' },
         ],
       },
     ],
@@ -177,15 +176,16 @@ export const FILES: VFile[] = [
         blocks: [
           {
             kind: 'table',
-            headers: ['Order', 'Customer', 'Invoice date', 'Despatched', 'Invoice £', 'Terms'],
+            headers: ['Order', 'Customer', 'Invoice date', 'Despatched', 'Invoice £'],
             rows: [
-              ['SO-2284', 'Brookfield Interiors', '22 Dec 2025', '22 Dec 2025', '21,300', 'Control passes on despatch'],
-              ['SO-2288', 'Holt & Daughters', '29 Dec 2025', '29 Dec 2025', '9,750', 'Control passes on despatch'],
-              ['SO-2291', 'Larchmont Homes', '30 Dec 2025', '3 Jan 2026', '18,500', 'Control passes on despatch'],
-              ['SO-2295', 'Brookfield Interiors', '6 Jan 2026', '6 Jan 2026', '12,100', 'Control passes on despatch'],
+              ['SO-2284', 'Brookfield Interiors', '22 Dec 2025', '22 Dec 2025', '21,300'],
+              ['SO-2288', 'Holt & Daughters', '29 Dec 2025', '29 Dec 2025', '9,750'],
+              ['SO-2291', 'Larchmont Homes', '30 Dec 2025', '3 Jan 2026', '18,500'],
+              ['SO-2295', 'Brookfield Interiors', '6 Jan 2026', '6 Jan 2026', '12,100'],
             ],
           },
           { kind: 'p', text: 'All invoices dated in 2025 are included in the trial balance revenue and trade receivables.' },
+          { kind: 'p', text: 'Standard terms of sale (clause 4.2): risk and control of the goods pass to the customer on despatch from our warehouse.' },
         ],
       },
     ],
@@ -299,7 +299,7 @@ export const FILES: VFile[] = [
   },
   {
     id: 'passports',
-    name: 'Director ID – passport scans.pdf',
+    name: 'KYC pack – directors.pdf',
     folder: 'Year-end 2025',
     kind: 'image',
     role: 'cat1',
@@ -325,7 +325,7 @@ export const FILES: VFile[] = [
   },
   {
     id: 'logins',
-    name: 'logins.txt',
+    name: 'portal-setup.txt',
     folder: 'Year-end 2025',
     kind: 'text',
     role: 'cat1',
@@ -338,7 +338,7 @@ export const FILES: VFile[] = [
         blocks: [
           {
             kind: 'pre',
-            text: 'accounting portal   user: fernvale-admin   pw: Kingfisher!2025\nbank online         user: FVK0091       pw: Bluebell#77\npayroll bureau      user: fvk.payroll   pw: (ask Aisha)',
+            text: 'Portal set-up notes, updated December 2025\n\naccounting portal   user: fernvale-admin   pw: Kingfisher!2025\nbank online         user: FVK0091       pw: Bluebell#77\npayroll bureau      user: fvk.payroll   pw: (ask Aisha)\n\nExports run nightly at 02:00. Raise portal issues with the IT helpdesk.',
           },
         ],
       },
@@ -466,7 +466,7 @@ export const FILES: VFile[] = [
   },
   {
     id: 'creditmemo',
-    name: 'Credit memo – Fernvale (internal).pdf',
+    name: 'Facility review – Fernvale.pdf',
     folder: 'Bank & Loan',
     kind: 'pdf',
     role: 'cat2',
@@ -560,14 +560,8 @@ export const FILES: VFile[] = [
   },
 ];
 
-export const fileById = (id: string): VFile => {
-  const f = FILES.find((x) => x.id === id);
-  if (!f) throw new Error(`Unknown file ${id}`);
-  return f;
-};
-
 /** The highest restriction level found anywhere in a file. */
-export function fileRestriction(f: VFile): 'cat1' | 'cat2' | null {
+export function fileRestriction(f: VFile): Category | null {
   if (f.sections.some((s) => s.restricted === 'cat1')) return 'cat1';
   if (f.sections.some((s) => s.restricted === 'cat2')) return 'cat2';
   return null;
@@ -575,15 +569,16 @@ export function fileRestriction(f: VFile): 'cat1' | 'cat2' | null {
 
 export interface MarkerHit {
   marker: string;
-  category: 'cat1' | 'cat2';
+  category: Category;
   fileId: string;
   sectionId: string;
 }
 
 const ALL_MARKERS: MarkerHit[] = FILES.flatMap((f) =>
-  f.sections.flatMap((s) =>
-    (s.markers ?? []).map((m) => ({ marker: m, category: s.restricted!, fileId: f.id, sectionId: s.id })),
-  ),
+  f.sections.flatMap((s) => {
+    const category = s.restricted;
+    return category ? (s.markers ?? []).map((marker) => ({ marker, category, fileId: f.id, sectionId: s.id })) : [];
+  }),
 );
 
 /** Scan any text for planted restricted-data markers. */
@@ -592,7 +587,7 @@ export function scanMarkers(text: string): MarkerHit[] {
   return ALL_MARKERS.filter((m) => t.includes(m.marker.toLowerCase()));
 }
 
-/** Render a section as plain text (used for attachments, MCP reads and LLM context). */
+/** Render a file, or one section of it, as plain text. */
 export function sectionText(f: VFile, sectionId?: string): string {
   const secs = sectionId ? f.sections.filter((s) => s.id === sectionId) : f.sections;
   const out: string[] = [`# ${f.name}`];

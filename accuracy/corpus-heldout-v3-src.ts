@@ -4,11 +4,11 @@
  * Same labelling policy as corpus-src.ts. Labels follow the policy even where the detector is expected
  * to miss (e.g. upper-case addresses, a bare home postcode, a tab-separated payroll file).
  *
- * Run: npx tsx test/corpus-heldout-v3-src.ts   (writes test/corpus-heldout-v3/)
+ * Run: npx tsx accuracy/corpus-heldout-v3-src.ts   (writes accuracy/corpus-heldout-v3/)
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeCorpus, type Doc } from './corpus-lib';
+import { writeCorpus, type Doc } from './corpus-lib.js';
 
 export const HELDOUT_V3: Doc[] = [
   { file: 'w01-statement-pdf-dump.txt', body: `
@@ -150,5 +150,5 @@ END:VCALENDAR
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   writeCorpus(path.join(path.dirname(fileURLToPath(import.meta.url)), 'corpus-heldout-v3'), HELDOUT_V3);
-  console.log(`Wrote ${HELDOUT_V3.length} documents to test/corpus-heldout-v3/`);
+  console.log(`Wrote ${HELDOUT_V3.length} documents to accuracy/corpus-heldout-v3/`);
 }

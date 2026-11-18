@@ -32,12 +32,12 @@ export function materialise(body: string): { text: string; spans: Span[] } {
   let last = 0;
   for (const m of body.matchAll(re)) {
     text += body.slice(last, m.index);
-    const label = m[1];
-    const value = m[2];
-    if (!CATEGORY[label]) throw new Error(`Unknown label "${label}"`);
-    spans.push({ label, category: CATEGORY[label], text: value, start: text.length, end: text.length + value.length });
+    const [whole, label = '', value = ''] = m;
+    const category = CATEGORY[label];
+    if (!category) throw new Error(`Unknown label "${label}"`);
+    spans.push({ label, category, text: value, start: text.length, end: text.length + value.length });
     text += value;
-    last = (m.index ?? 0) + m[0].length;
+    last = m.index + whole.length;
   }
   text += body.slice(last);
   return { text, spans };

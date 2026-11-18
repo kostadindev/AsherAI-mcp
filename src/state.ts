@@ -1,29 +1,20 @@
-/** Persistent gateway state shared by the MCP server (src/server.ts) and the assessor CLI (src/policy.ts). */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import type { Category } from './scenario/types.js';
-
-/**
- * Default location: in workspace mode a dotfile inside the workspace (never listed or served),
- * otherwise ./trialrun-session.json. TRIALRUN_STATE overrides both.
- */
-export const STATE_PATH = resolve(
-  process.env.TRIALRUN_STATE
-    ?? (process.env.TRIALRUN_WORKSPACE ? join(process.env.TRIALRUN_WORKSPACE, '.trialrun-session.json') : './trialrun-session.json'),
-);
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import type { Category } from './detectors.js';
 
 export type Habit = 'check' | 'decide' | 'protect';
 export type Outcome = 'did' | 'prompted' | 'missed';
+export const HABITS: readonly Habit[] = ['check', 'decide', 'protect'];
 
 export interface GatewayEvent {
-  t: string; // ISO timestamp
+  /** ISO timestamp. */
+  t: string;
   type: 'ai-open' | 'refused' | 'set-access' | 'check-text' | 'leak' | 'reset' | 'moment';
   /** Scenario file id, or workspace-relative path. */
   fileId?: string;
   sectionId?: string;
   line?: number;
   category?: Category;
-  /** Detector label (workspace mode) or "restricted section" (scenario mode). Never a raw value. */
+  /** Detector label. Never a raw value. */
   label?: string;
   /** Redacted snippets only. */
   markers?: string[];
@@ -35,24 +26,53 @@ export interface GatewayEvent {
   by?: 'assessor' | 'ai';
 }
 
+export type NewEvent = Omit<GatewayEvent, 't'>;
+
 export interface State {
   startedAt: string;
+  /** Scenario file ids the assessor has blocked. */
   blocked: string[];
   events: GatewayEvent[];
 }
 
 export const freshState = (): State => ({ startedAt: new Date().toISOString(), blocked: [], events: [] });
 
-export function loadState(): State {
-  if (existsSync(STATE_PATH)) {
-    try { return JSON.parse(readFileSync(STATE_PATH, 'utf8')) as State; } catch { /* fall through */ }
+/**
+ * The session log on disk. Every operation re-reads the file, so changes made by the assessor CLI
+ * in another process apply immediately and concurrent writers don't overwrite each other's events.
+ */
+export class SessionStore {
+  constructor(readonly path: string) {}
+
+  load(): State {
+    if (!existsSync(this.path)) return freshState();
+    try {
+      return JSON.parse(readFileSync(this.path, 'utf8')) as State;
+    } catch {
+      // A corrupt log must not take the gateway down; start a fresh one.
+      return freshState();
+    }
   }
-  return freshState();
-}
 
-export const saveState = (s: State) => writeFileSync(STATE_PATH, JSON.stringify(s, null, 2));
+  save(state: State): void {
+    writeFileSync(this.path, JSON.stringify(state, null, 2));
+  }
 
-export function appendEvent(s: State, e: Omit<GatewayEvent, 't'>) {
-  s.events.push({ t: new Date().toISOString(), ...e });
-  saveState(s);
+  append(event: NewEvent): void {
+    this.update((s) => { s.events.push({ t: new Date().toISOString(), ...event }); });
+  }
+
+  update(change: (state: State) => void): State {
+    const state = this.load();
+    change(state);
+    this.save(state);
+    return state;
+  }
+
+  reset(): State {
+    const state = freshState();
+    state.events.push({ t: state.startedAt, type: 'reset', note: 'session reset', by: 'assessor' });
+    this.save(state);
+    return state;
+  }
 }

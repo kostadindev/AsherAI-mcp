@@ -4,11 +4,11 @@
  * Same labelling policy as corpus-src.ts. Placeholders ("YOUR_API_KEY", "${{ secrets.X }}", "****")
  * are not secrets and are not labelled.
  *
- * Run: npx tsx test/corpus-heldout-v2-src.ts   (writes test/corpus-heldout-v2/)
+ * Run: npx tsx accuracy/corpus-heldout-v2-src.ts   (writes accuracy/corpus-heldout-v2/)
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeCorpus, type Doc } from './corpus-lib';
+import { writeCorpus, type Doc } from './corpus-lib.js';
 
 export const HELDOUT_V2: Doc[] = [
   { file: 'v01-payment-provider.json', body: `
@@ -141,5 +141,5 @@ Please call your relationship manager on 0345 300 9000 with any questions. Our r
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   writeCorpus(path.join(path.dirname(fileURLToPath(import.meta.url)), 'corpus-heldout-v2'), HELDOUT_V2);
-  console.log(`Wrote ${HELDOUT_V2.length} documents to test/corpus-heldout-v2/`);
+  console.log(`Wrote ${HELDOUT_V2.length} documents to accuracy/corpus-heldout-v2/`);
 }

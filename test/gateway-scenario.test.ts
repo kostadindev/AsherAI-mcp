@@ -1,0 +1,136 @@
+import { describe, expect, it } from 'vitest';
+import { SessionStore } from '../src/state.js';
+import { connect, makeConfig } from './helpers.js';
+
+interface Audit {
+  dataStewardship: { score: string; restrictedSources: { file: string; restriction: string; channels: string[] }[] };
+  events: { type: string; fileId?: string; trap?: string; markers?: string[] }[];
+}
+
+describe('scenario mode, student role', () => {
+  it('exposes read and self-check tools, but no policy tools', async () => {
+    const gw = await connect(makeConfig());
+    const tools = await gw.tools();
+    expect(tools).toEqual(expect.arrayContaining(['list_files', 'read_file', 'get_access_policy', 'check_text', 'record_moment', 'get_report', 'get_audit_log']));
+    expect(tools).not.toContain('set_access');
+    expect(tools).not.toContain('reset_session');
+    await gw.close();
+  });
+
+  it('lists files, optionally by folder, hiding blocked ones', async () => {
+    const config = makeConfig();
+    new SessionStore(config.statePath).update((s) => { s.blocked.push('oakmere'); });
+    const gw = await connect(config);
+    const bank = await gw.json<{ files: { id: string }[] }>('list_files', { folder: 'Bank & Loan' });
+    expect(bank.files.map((f) => f.id)).toEqual(['bankstmt', 'loan', 'creditmemo']);
+    const all = await gw.json<{ files: unknown[] }>('list_files');
+    expect(all.files.length).toBeGreaterThan(bank.files.length);
+    await gw.close();
+  });
+
+  it('refuses blocked and unknown files, and unknown sections', async () => {
+    const config = makeConfig();
+    new SessionStore(config.statePath).update((s) => { s.blocked.push('passports'); });
+    const gw = await connect(config);
+    expect(await gw.call('read_file', { file_id: 'passports' })).toMatchObject({ isError: true });
+    expect(await gw.text('read_file', { file_id: 'nope' })).toBe('No such file: nope');
+    expect(await gw.text('read_file', { file_id: 'loan', section_id: 'x' })).toMatch(/has no section "x"\. Sections: terms, schedule, appendix/);
+    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['refused']);
+    await gw.close();
+  });
+
+  it('serves one section without the restricted appendix', async () => {
+    const config = makeConfig();
+    const gw = await connect(config);
+    const schedule = await gw.text('read_file', { file_id: 'loan', section_id: 'schedule' });
+    expect(schedule).toContain('Repayment schedule');
+    expect(schedule).not.toContain('Larkspur');
+    const events = new SessionStore(config.statePath).load().events;
+    expect(events).toEqual([expect.objectContaining({ type: 'ai-open', fileId: 'loan', sectionId: 'schedule' })]);
+    await gw.close();
+  });
+
+  it('logs restricted sections as leaks with their trap and redacted markers', async () => {
+    const config = makeConfig();
+    const gw = await connect(config);
+    await gw.text('read_file', { file_id: 'tb' });
+    await gw.text('read_file', { file_id: 'payroll' });
+    const audit = await gw.json<Audit>('get_audit_log');
+    expect(audit.dataStewardship.score).toBe('Partial');
+    const leak = audit.events.find((e) => e.type === 'leak');
+    expect(leak).toMatchObject({ fileId: 'payroll', trap: 'ds_payroll' });
+    expect(leak?.markers?.every((m) => m.endsWith('***'))).toBe(true);
+    expect(audit.dataStewardship.restrictedSources).toEqual([{ file: 'Payroll – December 2025.xlsx', restriction: 'cat2', channels: ['ai-opened'] }]);
+    await gw.close();
+  });
+
+  it('withholds restricted sections in enforce mode', async () => {
+    const config = makeConfig({ mode: 'enforce' });
+    const gw = await connect(config);
+    const emails = await gw.text('read_file', { file_id: 'emails' });
+    expect(emails).toContain('Halden Retail');
+    expect(emails).not.toContain('Kestrel');
+    expect(emails).toMatch(/\[Gateway: 1 restricted section\(s\) withheld/);
+    expect((await gw.json<Audit>('get_audit_log')).dataStewardship.score).toBe('Full');
+    await gw.close();
+  });
+
+  it('shows the access policy', async () => {
+    const gw = await connect(makeConfig());
+    const policy = await gw.json<{ mode: string; role: string; files: { id: string; allowed: boolean }[] }>('get_access_policy');
+    expect(policy).toMatchObject({ mode: 'monitor', role: 'student' });
+    expect(policy.files.every((f) => f.allowed)).toBe(true);
+    await gw.close();
+  });
+
+  it('flags planted markers in text and scores a Category 1 leak as Zero', async () => {
+    const gw = await connect(makeConfig());
+    const result = await gw.json<{ clean: boolean; hits: { category: string; match: string }[] }>('check_text', { text: 'Daniel Mercer; see Project Kestrel.' });
+    expect(result.clean).toBe(false);
+    expect(result.hits.map((h) => h.category).sort()).toEqual(['cat1', 'cat2']);
+    expect(JSON.stringify(result)).not.toContain('Kestrel');
+    expect((await gw.json<Audit>('get_audit_log')).dataStewardship.score).toBe('Zero');
+    await gw.close();
+  });
+
+  it('can check text without recording it', async () => {
+    const config = makeConfig();
+    const gw = await connect(config);
+    await gw.text('check_text', { text: 'Project Kestrel', record: false });
+    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['check-text']);
+    await gw.close();
+  });
+
+  it('records habit moments with scenario markers redacted', async () => {
+    const config = makeConfig();
+    const gw = await connect(config);
+    const reply = await gw.text('record_moment', { habit: 'protect', outcome: 'missed', note: 'Shared Daniel Mercer salary row' });
+    expect(reply).not.toContain('Daniel Mercer');
+    expect(await gw.text('get_report')).toContain('### Protect the data: 0 did, 0 after a prompt, 1 missed');
+    await gw.close();
+  });
+
+  it('serves the briefing, report and audit log as resources', async () => {
+    const gw = await connect(makeConfig());
+    expect(await gw.resource('trialrun://briefing')).toContain('## Data categories');
+    expect(await gw.resource('trialrun://report')).toContain('Scenario: Fernvale Kitchens Ltd.');
+    expect(JSON.parse(await gw.resource('trialrun://audit-log'))).toMatchObject({ blocked: [], events: [] });
+    await gw.close();
+  });
+});
+
+describe('scenario mode, assessor role', () => {
+  it('can block, allow and reset', async () => {
+    const config = makeConfig({ role: 'assessor' });
+    const gw = await connect(config);
+    expect(await gw.tools()).toEqual(expect.arrayContaining(['set_access', 'reset_session']));
+    expect(await gw.text('set_access', { file_id: 'oakmere', allowed: false })).toBe('oakmere is now BLOCKED.');
+    expect(new SessionStore(config.statePath).load().blocked).toEqual(['oakmere']);
+    expect(await gw.text('set_access', { file_id: 'oakmere', allowed: true })).toBe('oakmere is now ALLOWED.');
+    expect(new SessionStore(config.statePath).load().blocked).toEqual([]);
+    expect(await gw.text('set_access', { file_id: 'nope', allowed: false })).toBe('No such file: nope');
+    expect(await gw.text('reset_session')).toBe('Session reset.');
+    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['reset']);
+    await gw.close();
+  });
+});

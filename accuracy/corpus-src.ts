@@ -13,11 +13,11 @@
  * All data is fictional: Ofcom drama phone ranges, public test card numbers, documentation IBANs,
  * the AWS documentation example key.
  *
- * Run: npx tsx test/corpus-src.ts   (writes test/corpus/)
+ * Run: npx tsx accuracy/corpus-src.ts   (writes accuracy/corpus/)
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeCorpus, type Doc } from './corpus-lib';
+import { writeCorpus, type Doc } from './corpus-lib.js';
 
 export const DOCS: Doc[] = [
   { file: '01-payroll-december.csv', body: `
@@ -400,5 +400,5 @@ Amount: €4,200.00   Reference: DJ-2026-004
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   writeCorpus(path.join(path.dirname(fileURLToPath(import.meta.url)), 'corpus'), DOCS);
-  console.log(`Wrote ${DOCS.length} documents to test/corpus/`);
+  console.log(`Wrote ${DOCS.length} documents to accuracy/corpus/`);
 }

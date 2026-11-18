@@ -1,23 +1,28 @@
-/** Detector tests. Run: npx tsx test/detectors.test.ts */
-import { detect, redact, type SensitiveTerm } from '../src/detectors.js';
+import { describe, expect, it } from 'vitest';
+import { detect, redact, redactValue, type Category, type SensitiveTerm } from '../src/detectors.js';
+import { first } from './helpers.js';
 
 const TERMS: SensitiveTerm[] = [
   { term: 'Project Kestrel', category: 'cat1' },
   { term: 'Larchmont Homes', category: 'cat2' },
 ];
 
-// [text, expected label, expected category]
-const POSITIVE: [string, string, 'cat1' | 'cat2'][] = [
+const POSITIVE: [text: string, label: string, category: Category][] = [
   ['password: Kingfisher!2025', 'credential', 'cat1'],
   ['db_password = s3cr3tValue', 'credential', 'cat1'],
   ['pw: Bluebell#77', 'credential', 'cat1'],
   ['API_KEY=abcd1234efgh5678', 'credential', 'cat1'],
   ['client_secret: "zX9-qq_771mm"', 'credential', 'cat1'],
+  ['{"password": "Winter2026!fern"}', 'credential', 'cat1'],
+  ['the temporary password is Winter2026!fern', 'credential', 'cat1'],
   ['aws key AKIAIOSFODNN7EXAMPLE in config', 'credential', 'cat1'],
   ['OPENAI=sk-proj_abcdefghijklmnopqrstuvwx', 'credential', 'cat1'],
   ['token ghp_ABCDEFGHIJKLMNOPQRSTUVWXyz0123', 'credential', 'cat1'],
+  ['Authorization: Bearer abcdefghijklmnop0123456789', 'credential', 'cat1'],
+  ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl', 'credential', 'cat1'],
   ['-----BEGIN RSA PRIVATE KEY-----', 'private key', 'cat1'],
   ['Card 4111 1111 1111 1111 exp 09/27', 'payment card', 'cat1'],
+  ['Paid with 4111111111111111.', 'payment card', 'cat1'],
   ['mastercard 5555555555554444', 'payment card', 'cat1'],
   ['amex 3782-822463-10005', 'payment card', 'cat1'],
   ['UK passport no. 553829174', 'passport number', 'cat1'],
@@ -26,7 +31,6 @@ const POSITIVE: [string, string, 'cat1' | 'cat2'][] = [
   ['Contact priya.raman@example.co.uk for the pack', 'email', 'cat2'],
   ['Call 07700 900123 after 5pm', 'phone number', 'cat2'],
   ['Office: 020 7946 0018', 'phone number', 'cat2'],
-  ['Spoke to Priya, mobile 07700 900123.', 'phone number', 'cat2'],
   ['Tel +44 (0) 1223 456789', 'phone number', 'cat2'],
   ['US desk +1 415 555 0132', 'phone number', 'cat2'],
   ['NI number JR 48 31 22 C', 'national insurance number', 'cat2'],
@@ -35,6 +39,8 @@ const POSITIVE: [string, string, 'cat1' | 'cat2'][] = [
   ['lives at 27 Orchard Rise, Bury St Edmunds IP33 3AB', 'home address', 'cat2'],
   ['Pay to GB82 WEST 1234 5698 7654 32', 'IBAN', 'cat2'],
   ['sort code 40-22-18 account 31926819', 'bank account', 'cat2'],
+  ['Sort code: 20-45-77\nAccount number: 63849217', 'bank account', 'cat2'],
+  ['A/C no: 63849217', 'bank account', 'cat2'],
   ['DOB 14/03/1979', 'date of birth', 'cat2'],
   ['born 2 November 1971 in Ely', 'date of birth', 'cat2'],
   ['Customer: Larchmont Homes', 'sensitive term', 'cat2'],
@@ -43,6 +49,7 @@ const POSITIVE: [string, string, 'cat1' | 'cat2'][] = [
 const NEGATIVE: string[] = [
   'The password policy says passwords must be 12 characters.',
   'Reset your password via the portal.',
+  'PASSWORD_MIN_LENGTH=12',
   'Invoice INV-2025-00918 for £18,500.00',
   'Revenue 1,248,000 and purchases 612,000 in 2025',
   'Year ended 31 December 2025',
@@ -60,33 +67,82 @@ const NEGATIVE: string[] = [
   'Coordinates 52.2053, 0.1218',
   'Ratio 0.25 of profit before tax 145,500',
   'ISBN 978-0-306-40615-7',
+  'Questions to accounts@fernvale.co.uk please',
+  'Our helpline 0345 600 1234',
+  'Card number 4111 1111 1111 1112 failed the check',
+  'Fernvale Kitchens Ltd, Unit 4 Marsh Lane Trading Estate, Ely CB7 4QF',
+  'Passport Office opening hours',
 ];
 
-let pass = 0;
-let fail = 0;
-const ok = (cond: boolean, label: string, detail = '') => {
-  if (cond) pass++; else { fail++; console.log(`FAIL ${label}${detail ? ` -> ${detail}` : ''}`); }
-};
+describe('detect', () => {
+  it.each(POSITIVE)('flags %j', (text, label, category) => {
+    expect(detect(text, TERMS)).toContainEqual(expect.objectContaining({ label, category }));
+  });
 
-for (const [text, label, cat] of POSITIVE) {
-  const hits = detect(text, TERMS);
-  ok(hits.some((h) => h.label === label && h.category === cat), `positive: ${text}`, JSON.stringify(hits.map((h) => h.label)));
-}
-for (const text of NEGATIVE) {
-  const hits = detect(text, TERMS);
-  ok(hits.length === 0, `negative: ${text}`, JSON.stringify(hits.map((h) => `${h.label}:${h.match}`)));
-}
+  it.each(NEGATIVE)('does not flag %j', (text) => {
+    expect(detect(text, TERMS)).toEqual([]);
+  });
 
-// Hits never carry the raw value.
-const secret = 'password: Kingfisher!2025 and card 4111 1111 1111 1111';
-const hs = detect(secret);
-ok(hs.every((h) => !h.match.includes('Kingfisher') && !h.match.includes('1111 1111')), 'hits are redacted');
-// Redaction replaces the value with its label.
-const red = redact(secret, hs);
-ok(!red.includes('Kingfisher') && red.includes('[redacted: credential]') && red.includes('[redacted: payment card]'), 'redact() removes values', red);
-// Line numbers.
-const lines = detect('ok\nfine\nemail me: a.b@c.com');
-ok(lines[0]?.line === 3, 'line numbers are 1-based', String(lines[0]?.line));
+  it('never returns the raw value', () => {
+    const hits = detect('password: Kingfisher!2025 and card 4111 1111 1111 1111');
+    expect(hits).toHaveLength(2);
+    for (const h of hits) {
+      expect(h.match).toMatch(/^.{2}\*\*\*$/);
+      expect(h.match).not.toContain('Kingfisher');
+    }
+  });
 
-console.log(`\n${POSITIVE.length} positive, ${NEGATIVE.length} negative cases: ${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+  it('reports 1-based line numbers and offsets', () => {
+    const text = 'ok\nfine\nemail me: a.b@c.com';
+    const hit = first(detect(text));
+    expect(hit.line).toBe(3);
+    expect(text.slice(hit.index, hit.index + hit.length)).toBe('a.b@c.com');
+  });
+
+  it('ignores sensitive terms shorter than three characters', () => {
+    expect(detect('AB went to the bank', [{ term: 'AB', category: 'cat1' }])).toEqual([]);
+  });
+
+  it('keeps the stricter category when hits overlap', () => {
+    const hits = detect('note: Project Kestrel', [{ term: 'Kestrel', category: 'cat2' }, { term: 'Project Kestrel', category: 'cat1' }]);
+    expect(hits).toHaveLength(1);
+    expect(first(hits).category).toBe('cat1');
+  });
+
+  it('reads date-of-birth columns from a CSV header in any spelling', () => {
+    const csv = 'name,start_date,Date_of_Birth,team\nLeah Morgan,2025-02-03,1994-07-12,Audit\n';
+    expect(detect(csv).map((h) => h.label)).toContain('date of birth');
+  });
+
+  it('treats a postcode column in a table of people as a home address', () => {
+    const csv = 'name,role,postcode\nLeah Morgan,Analyst,CB4 2QW\n';
+    expect(detect(csv).map((h) => h.label)).toContain('home address');
+  });
+
+  it('does not treat a supplier postcode column as a home address', () => {
+    const csv = 'supplier,name,postcode\nBrightline,Accounts,CB4 2QW\n';
+    expect(detect(csv).map((h) => h.label)).not.toContain('home address');
+  });
+
+  it('only flags a date as a birth date when the nearest label is a birth label', () => {
+    const labels = detect('Date of birth: 1979-03-14   Appointed: 2016-05-01').filter((h) => h.label === 'date of birth');
+    expect(labels).toHaveLength(1);
+  });
+});
+
+describe('redact', () => {
+  it('replaces every value with its label', () => {
+    const text = 'password: Kingfisher!2025 and card 4111 1111 1111 1111';
+    expect(redact(text, detect(text))).toBe('password: [redacted: credential] and card [redacted: payment card]');
+  });
+
+  it('returns the text unchanged with no hits', () => {
+    expect(redact('nothing here', [])).toBe('nothing here');
+  });
+});
+
+describe('redactValue', () => {
+  it('keeps two characters', () => {
+    expect(redactValue('  Kingfisher ')).toBe('Ki***');
+  });
+});

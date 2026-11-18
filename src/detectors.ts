@@ -9,12 +9,12 @@
  * "passport" nearby, a checksum). Hits never carry the raw value, only a redacted snippet.
  */
 
-export type DetCategory = 'cat1' | 'cat2';
+export type Category = 'cat1' | 'cat2';
 
-export interface SensitiveTerm { term: string; category: DetCategory }
+export interface SensitiveTerm { term: string; category: Category }
 
 export interface Hit {
-  category: DetCategory;
+  category: Category;
   label: string;
   /** Redacted snippet: first two characters, then ***. Never the raw value. */
   match: string;
@@ -80,9 +80,12 @@ const PERSON_HEADER = /^(?:name|full name|surname|last name|forename|first name|
 /** A nearby line that names an organisation: letterheads put the company on the line above its address. */
 const ORG_NAME_LINE = /\b(?:plc|ltd|limited|llp|holdings|group plc|bank plc|building society)\b|\bbank\s*$/i;
 const isRoleMailbox = (email: string) => {
-  const local = email.split('@')[0].toLowerCase();
-  return ROLE_MAILBOX.has(local) || ROLE_MAILBOX.has(local.split(/[._+-]/)[0]);
+  const local = email.slice(0, email.indexOf('@')).toLowerCase();
+  const firstWord = local.split(/[._+-]/, 1)[0] ?? local;
+  return ROLE_MAILBOX.has(local) || ROLE_MAILBOX.has(firstWord);
 };
+
+const firstLineOf = (text: string) => text.split('\n', 1)[0] ?? text;
 
 /** Setting names that are about passwords rather than holding one (PASSWORD_MIN_LENGTH, token_expiry_days …). */
 const CREDENTIAL_SETTING = /(length|policy|min|max|expiry|expires|expire|days|timeout|ttl|rotation|count|attempts|retries|reset|url|uri|file|path|enabled|disabled|required|header|type|name|id_type|hint|format)/i;
@@ -91,7 +94,7 @@ const PLACEHOLDER = /^(?:<[^>]*>|\$\{?[A-Z_]+\}?|changeme|required|none|null|n\/
 
 /** Column name of a CSV cell, read from the first line of the text. */
 function csvHeaderFor(text: string, lineText: string, index: number, lineStart: number): string | null {
-  const firstLine = text.slice(0, text.indexOf('\n') === -1 ? text.length : text.indexOf('\n'));
+  const firstLine = firstLineOf(text);
   if (!firstLine.includes(',') || firstLine === lineText) return null;
   const splitCsv = (s: string) => {
     const cells: { start: number; value: string }[] = [];
@@ -113,18 +116,17 @@ function csvHeaderFor(text: string, lineText: string, index: number, lineStart: 
   const offset = index - lineStart;
   let col = -1;
   cells.forEach((c, k) => { if (offset >= c.start) col = k; });
-  return col >= 0 ? header[col] : null;
+  return header[col] ?? null;
 }
 
 /** All column names of the table, if the text is a CSV with a header row. */
 function csvHeaders(text: string): string[] {
-  const firstLine = text.slice(0, text.indexOf('\n') === -1 ? text.length : text.indexOf('\n'));
-  const cols = firstLine.split(',').map((c) => normHeader(c.replace(/"/g, '')));
+  const cols = firstLineOf(text).split(',').map((c) => normHeader(c.replace(/"/g, '')));
   return cols.length >= 3 ? cols : [];
 }
 
 interface Rule {
-  category: DetCategory;
+  category: Category;
   label: string;
   re: RegExp;
   /** Which capture group holds the sensitive value (default whole match). */
@@ -148,7 +150,7 @@ const RULES: Rule[] = [
     group: 2,
     trimPunct: true,
     check: (v, { match }) => {
-      const name = match[1];
+      const name = match[1] ?? '';
       // The secret word must be a whole part of the name (DB_PASSWORD, clientSecret), not part of
       // another word (Passport, Tokenizer).
       const parts = name.split(/[_.\-\s]+|(?<=[a-z])(?=[A-Z])/).map((p) => p.toLowerCase()).filter(Boolean);
@@ -262,11 +264,11 @@ const RULES: Rule[] = [
       const prefix = text.slice(Math.max(lineStart, index - 40), index);
       // The trailing "0" stands in for the date itself so "born 14 March" ends in a digit.
       const labels = [...`${prefix}0`.matchAll(/([A-Za-z][A-Za-z. ]{1,24})(?::|\s(?=\d))/g)];
-      const nearest = labels.length ? labels[labels.length - 1][1] : prefix;
-      if (!DOB_LABEL.test(nearest)) return false;
+      const nearest = labels.at(-1);
+      if (!DOB_LABEL.test(nearest?.[1] ?? prefix)) return false;
       // No other date between the label and this one.
-      const afterLabel = labels.length ? prefix.slice((labels[labels.length - 1].index ?? 0)) : prefix;
-      return !/\d{1,4}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(afterLabel.replace(/[^\n]*$/, '').slice(0, -1));
+      const afterLabel = nearest ? prefix.slice(nearest.index) : prefix;
+      return !/\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}/.test(afterLabel.replace(/[^\n]*$/, '').slice(0, -1));
     },
   },
 ];
@@ -279,13 +281,17 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
   for (let i = 0; i < text.length; i++) if (text[i] === '\n') lineStarts.push(i + 1);
   const lineOf = (idx: number) => {
     let lo = 0, hi = lineStarts.length - 1;
-    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (lineStarts[mid] <= idx) lo = mid; else hi = mid - 1; }
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if ((lineStarts[mid] ?? 0) <= idx) lo = mid;
+      else hi = mid - 1;
+    }
     return lo;
   };
   const lineTextAt = (idx: number) => {
     const l = lineOf(idx);
-    const end = l + 1 < lineStarts.length ? lineStarts[l + 1] - 1 : text.length;
-    return text.slice(lineStarts[l], end);
+    const next = lineStarts[l + 1];
+    return text.slice(lineStarts[l] ?? 0, next === undefined ? text.length : next - 1);
   };
 
   const hits: Hit[] = [];
@@ -296,12 +302,15 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
   for (const r of rules) {
     r.re.lastIndex = 0;
     for (const m of text.matchAll(r.re)) {
-      let value = r.group ? m[r.group] : m[0];
+      const raw = r.group ? m[r.group] : m[0];
+      if (!raw) continue;
+      const index = r.group ? m.index + m[0].lastIndexOf(raw) : m.index;
+      // Drop trailing punctuation, but keep "!" or "?" that is part of a password ("Winter2026!").
+      const value = r.trimPunct
+        ? raw.replace(/[).,;:!?\]]+$/, (p) => (/[!?]/.test(p) && raw.length - p.length >= 4 ? p.replace(/[).,;:\]]+$/, '') : ''))
+        : raw;
       if (!value) continue;
-      const index = r.group ? (m.index ?? 0) + m[0].lastIndexOf(value) : m.index ?? 0;
-      if (r.trimPunct) value = value.replace(/[).,;:!?\]]+$/, (p) => (/[!?]/.test(p) && value.length - p.length >= 4 ? p.replace(/[).,;:\]]+$/, '') : ''));
-      if (!value) continue;
-      const lineStart = lineStarts[lineOf(index)];
+      const lineStart = lineStarts[lineOf(index)] ?? 0;
       if (r.check && !r.check(value, { text, index, lineText: lineTextAt(index), lineStart, match: m })) continue;
       hits.push({ category: r.category, label: r.label, match: redactValue(value), index, length: value.length, line: lineOf(index) + 1 });
     }
@@ -310,7 +319,7 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
   hits.sort((a, b) => a.index - b.index || b.length - a.length);
   const out: Hit[] = [];
   for (const h of hits) {
-    const prev = out[out.length - 1];
+    const prev = out.at(-1);
     if (prev && h.index >= prev.index && h.index + h.length <= prev.index + prev.length) {
       if (h.category === 'cat1' && prev.category === 'cat2') out[out.length - 1] = h; // keep the stricter label
       continue;

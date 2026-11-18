@@ -1,12 +1,12 @@
 {
   "name": "trialrun-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An MCP gateway that assesses data stewardship and AI-literacy habits while any MCP agent works on your files.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "trialrun-mcp": "dist/server.js",
-    "trialrun-policy": "dist/policy.js"
+    "trialrun-mcp": "dist/bin/server.js",
+    "trialrun-policy": "dist/bin/policy.js"
   },
   "files": [
     "dist",
@@ -14,12 +14,17 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
-    "test": "npm run build && tsx test/detectors.test.ts && tsx test/smoke.ts && tsx test/smoke-workspace.ts",
-    "start": "node dist/server.js",
-    "eval": "tsx test/eval-detectors.ts",
-    "corpus": "tsx test/corpus-src.ts && tsx test/corpus-heldout-v1-src.ts && tsx test/corpus-heldout-v2-src.ts && tsx test/corpus-heldout-v3-src.ts"
+    "start": "node dist/bin/server.js",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "check": "npm run typecheck && npm run lint && npm run coverage",
+    "accuracy": "tsx accuracy/score.ts",
+    "corpus": "tsx accuracy/corpus-src.ts && tsx accuracy/corpus-heldout-v1-src.ts && tsx accuracy/corpus-heldout-v2-src.ts && tsx accuracy/corpus-heldout-v3-src.ts",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\""
   },
   "keywords": [
     "mcp",
@@ -27,8 +32,20 @@
     "ai-literacy",
     "data-protection",
     "assessment",
-    "education"
+    "education",
+    "claude",
+    "gateway",
+    "privacy",
+    "pii-detection"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kostadindev/trialrun-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kostadindev/trialrun-mcp/issues"
+  },
+  "homepage": "https://github.com/kostadindev/trialrun-mcp#readme",
   "engines": {
     "node": ">=20"
   },
@@ -37,8 +54,14 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^3.2.7",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
     "tsx": "4.23.15",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^3.2.7"
   }
 }

@@ -3,18 +3,18 @@
  * tuning corpus does not use. They are reported separately and were not used to change the detectors.
  * Same labelling policy as corpus-src.ts.
  *
- * Run: npx tsx test/corpus-heldout-v1-src.ts   (writes test/corpus-heldout-v1/)
+ * Run: npx tsx accuracy/corpus-heldout-v1-src.ts   (writes accuracy/corpus-heldout-v1/)
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeCorpus, type Doc } from './corpus-lib';
+import { writeCorpus, type Doc } from './corpus-lib.js';
 
 export const HELDOUT: Doc[] = [
   { file: 'h01-integration-config.json', body: `
 {
   "service": "bank-feed",
   "version": "1.8.3",
-  "endpoint": "https://feeds.example-bank.test/v2",
+  "endpoint": "https://feeds.example-bank.accuracy/v2",
   "username": "fernvale_feed",
   "password": "[[credential|Lk9#vQ2!pZx7]]",
   "api_token": "[[credential|tok_live_7Hq2Lm9Px4Rt8Vb1]]",
@@ -98,5 +98,5 @@ Our freephone 0800 015 0700 and sales line 0345 300 1234 were confirmed.
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   writeCorpus(path.join(path.dirname(fileURLToPath(import.meta.url)), 'corpus-heldout-v1'), HELDOUT);
-  console.log(`Wrote ${HELDOUT.length} documents to test/corpus-heldout-v1/`);
+  console.log(`Wrote ${HELDOUT.length} documents to accuracy/corpus-heldout-v1/`);
 }

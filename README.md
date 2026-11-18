@@ -1,5 +1,7 @@
 # trialrun-mcp
 
+[![CI](https://github.com/kostadindev/trialrun-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kostadindev/trialrun-mcp/actions/workflows/ci.yml)
+
 An MCP gateway that assesses **data stewardship** and **AI-literacy habits** while any MCP agent works on your
 files. The agent reads files only through the gateway, so you get evidence of what actually reached the AI,
 not what someone says happened.
@@ -90,7 +92,7 @@ Resources: `trialrun://report`, `trialrun://audit-log`, and in scenario mode `tr
 
 | Category | What |
 |---|---|
-| 1, prohibited | Labelled credentials, AWS / `sk-` / GitHub keys, private keys, Luhn-valid card numbers, passport numbers next to "passport", your cat1 terms |
+| 1, prohibited | Labelled credentials, AWS / `sk-` / GitHub keys, bearer tokens and JWTs, private keys, Luhn-valid card numbers, passport numbers next to "passport", your cat1 terms |
 | 2, not for AI | Emails, phone numbers, UK NI numbers, UK home addresses, IBANs, sort code + account, dates of birth, your cat2 terms |
 
 What counts as restricted:
@@ -104,18 +106,18 @@ What counts as restricted:
 
 ### Measured accuracy
 
-`npm run eval` scores the detectors against labelled corpora of fictional accounting documents (payroll,
+`npm run accuracy` scores the detectors against labelled corpora of fictional accounting documents (payroll,
 bank exports, invoices, loan agreements, emails, configs, audit working papers). A hit counts when its label
 matches and its span overlaps a labelled span.
 
 | Corpus | Documents | Labelled items | Precision | Recall |
 |---|---|---|---|---|
-| Tuning (`test/corpus`), used while developing | 40 | 77 | 100% | 100% |
-| Held-out v1 (`test/corpus-heldout-v1`), misses fixed, now a regression set | 10 | 28 | 100% | 100% |
-| Held-out v2 (`test/corpus-heldout-v2`), misses fixed, now a regression set | 12 | 22 | 100% | 100% |
-| Held-out v3 (`test/corpus-heldout-v3`), written after those fixes, never tuned on | 12 | 30 | 96.0% | 80.0% |
+| Tuning (`accuracy/corpus`), used while developing | 40 | 77 | 100% | 100% |
+| Held-out v1 (`accuracy/corpus-heldout-v1`), misses fixed, now a regression set | 10 | 28 | 100% | 100% |
+| Held-out v2 (`accuracy/corpus-heldout-v2`), misses fixed, now a regression set | 12 | 22 | 100% | 100% |
+| Held-out v3 (`accuracy/corpus-heldout-v3`), written after those fixes, never tuned on | 12 | 30 | 96.0% | 80.0% |
 
-The tuning corpus gates the run (precision and recall at least 95%, and at least 90% recall for every label
+The tuning corpus gates CI (precision and recall at least 95%, and at least 90% recall for every label
 with five or more items). **Held-out v3 is the honest estimate.** Each held-out set was scored once before its
 misses were fixed: v1 at 100% precision and 85.7% recall, v2 at 90.0% and 81.8%. One v2 label was corrected
 after its first run: a sort code and account in a JSON expense export were restricted under the policy but had
@@ -141,10 +143,25 @@ UK postcode.
 
 ```bash
 npm install
-npm test        # builds, then: 52 detector cases, scenario smoke test, workspace smoke test
-npm run eval    # precision and recall on the tuning corpus and held-out v1, v2, v3
-npm run corpus  # regenerate the corpora from test/corpus*-src.ts
+npm test           # unit, in-process MCP and stdio end-to-end tests (vitest)
+npm run check      # typecheck + lint + tests with coverage (thresholds: 90% lines, 80% branches)
+npm run build      # compile src/ to dist/
+npm run accuracy   # detector precision and recall on the labelled corpora
+npm run corpus     # regenerate the corpora from accuracy/*-src.ts
 ```
+
+| Path | What |
+|---|---|
+| `src/gateway.ts` | Builds the MCP server for a config |
+| `src/tools/` | Tool registration: `workspace.ts`, `scenario.ts`, and `shared.ts` for both modes |
+| `src/detectors.ts` | Restricted-data detectors and redaction |
+| `src/workspace.ts` | Policy file, globs, safe path resolution, listing and reading |
+| `src/state.ts`, `src/report.ts`, `src/scan.ts` | Session log, stewardship score and report, text scanning |
+| `src/policy-cli.ts` | Owner / assessor commands |
+| `src/bin/` | `trialrun-mcp` and `trialrun-policy` entry points |
+| `src/scenario/` | The built-in TrialRun demo files and markers |
+| `test/` | Vitest suites |
+| `accuracy/` | Labelled corpora and the precision/recall scorer |
 
 | Variable | Default | Meaning |
 |---|---|---|

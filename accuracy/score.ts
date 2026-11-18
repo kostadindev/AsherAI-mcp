@@ -1,17 +1,17 @@
 /**
  * Precision / recall evaluation of the restricted-data detectors against labelled corpora.
  *
- *   npx tsx test/eval-detectors.ts [dir ...]     (default: test/corpus, test/corpus-heldout-v1, -v2, -v3)
+ *   npm run accuracy -- [dir ...]     (default: accuracy/corpus, accuracy/corpus-heldout-v1, -v2, -v3)
  *
  * A prediction matches a label when the labels are equal and the spans overlap; each label is
- * matched at most once. Exits non-zero if the TUNING corpus (test/corpus) falls below the targets:
+ * matched at most once. Exits non-zero if the TUNING corpus (accuracy/corpus) falls below the targets:
  * overall precision >= 0.95, overall recall >= 0.95, and recall >= 0.90 for every label with at
  * least 5 instances. Held-out corpora are reported but never gate the run.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { detect } from '../src/detectors';
+import { detect } from '../src/detectors.js';
 
 interface Span { label: string; category: string; text: string; start: number; end: number }
 interface Counts { tp: number; fp: number; fn: number }
@@ -33,8 +33,9 @@ for (const dir of dirs) {
   const files = fs.readdirSync(dir).filter((f) => !f.endsWith('.labels.json')).sort();
   const perLabel = new Map<string, Counts>();
   const bump = (label: string, k: keyof Counts) => {
-    if (!perLabel.has(label)) perLabel.set(label, { tp: 0, fp: 0, fn: 0 });
-    perLabel.get(label)![k]++;
+    const counts = perLabel.get(label) ?? { tp: 0, fp: 0, fn: 0 };
+    counts[k]++;
+    perLabel.set(label, counts);
   };
   const errors: string[] = [];
 
