@@ -6,7 +6,7 @@ export type Mode = 'monitor' | 'enforce';
 /** Owner-controlled policy file inside a workspace. Never listed or served to the AI. */
 export const POLICY_FILE = '.trialrun.json';
 /** Default session log inside a workspace. Never listed or served to the AI. */
-export const STATE_FILE = '.trialrun-session.json';
+export const STATE_FILE = '.trialrun-session.jsonl';
 
 export interface GatewayConfig {
   /** "assessor" also registers the tools that change the access policy or reset the log. */
@@ -21,7 +21,7 @@ export interface GatewayConfig {
 
 /**
  * TRIALRUN_WORKSPACE  folder to serve (switches to workspace mode)
- * TRIALRUN_STATE      session log path (default: <workspace>/.trialrun-session.json, else ./trialrun-session.json)
+ * TRIALRUN_STATE      session log path (default: <workspace>/.trialrun-session.jsonl, else ./trialrun-session.jsonl)
  * TRIALRUN_MODE       "monitor" (default) or "enforce"
  * TRIALRUN_ROLE       "student" (default) or "assessor"
  */
@@ -30,7 +30,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): GatewayConf
   return {
     role: env.TRIALRUN_ROLE === 'assessor' ? 'assessor' : 'student',
     workspace,
-    statePath: resolve(env.TRIALRUN_STATE ?? (workspace ? join(workspace, STATE_FILE) : 'trialrun-session.json')),
+    statePath: resolve(env.TRIALRUN_STATE ?? (workspace ? join(workspace, STATE_FILE) : 'trialrun-session.jsonl')),
     mode: env.TRIALRUN_MODE === 'enforce' ? 'enforce' : 'monitor',
   };
 }

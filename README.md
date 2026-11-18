@@ -11,7 +11,11 @@ not what someone says happened.
 - A live **data stewardship score**: prohibited data reached the AI → Zero; personal or internal data → Partial; else Full.
 - A **habit log** and **AI literacy report** that a coaching skill can write to
   ([trialrun-skill](https://github.com/kostadindev/trialrun-skill)).
-- Logs, replies and reports hold **labels only** (for example "NI number"), never raw values.
+- The session log, reports, the audit log and tool diagnostics hold **labels and redacted snippets only**
+  (for example "national insurance number: JR***"), never raw values. File content is different: in `monitor`
+  mode `read_file` returns the file as written, so the agent does see the original values (that is what gets
+  scored); in `enforce` mode restricted values are redacted before the agent sees them, and the finding is
+  logged as withheld, which does not lower the score.
 
 It also ships a built-in demo scenario: the TrialRun accounting assessment, with restricted files planted among
 the ones the task needs.
@@ -70,8 +74,17 @@ npx -y -p github:kostadindev/trialrun-mcp trialrun-policy reset     # clears the
 }
 ```
 
-Globs support `*`, `**` and `?`; a pattern with no `/` matches the file name at any depth. The policy file, the
-session log (`.trialrun-session.json`) and all dotfiles are never served.
+Globs support `*`, `**` and `?`; a pattern with no `/` matches the file name at any depth.
+
+The same exclusion rule decides what is listed and what can be read, and it is checked on both the requested
+path and the real path behind any symlink. Never listed or read: any path with a segment starting with `.`
+(so `.env`, `.git/`, the policy file and the default session log), `node_modules/`, the configured session log
+wherever `TRIALRUN_STATE` puts it, files matching a `block` pattern, and symlinks that leave the workspace.
+
+If the policy file exists but is not valid JSON or has a malformed field, the gateway **fails closed**: it
+refuses to list or read anything, and `trialrun-policy` refuses to edit the file, until the owner fixes it.
+Policy edits are written atomically. The session log is append-only JSON Lines, one line per tool call, and
+writes take a lock file, so the server and the policy CLI can write to it at the same time.
 
 ## Tools
 
@@ -108,7 +121,7 @@ What counts as restricted:
 
 `npm run accuracy` scores the detectors against labelled corpora of fictional accounting documents (payroll,
 bank exports, invoices, loan agreements, emails, configs, audit working papers). A hit counts when its label
-matches and its span overlaps a labelled span.
+matches and its span overlaps a labelled span; a private key must be covered from its BEGIN line to its END line.
 
 | Corpus | Documents | Labelled items | Precision | Recall |
 |---|---|---|---|---|
@@ -147,6 +160,7 @@ npm test           # unit, in-process MCP and stdio end-to-end tests (vitest)
 npm run check      # typecheck + lint + tests with coverage (thresholds: 90% lines, 80% branches)
 npm run build      # compile src/ to dist/
 npm run accuracy   # detector precision and recall on the labelled corpora
+npm run test:package  # after build: npm pack, install the tarball in a temp project, drive the bins over stdio
 npm run corpus     # regenerate the corpora from accuracy/*-src.ts
 ```
 
@@ -166,7 +180,7 @@ npm run corpus     # regenerate the corpora from accuracy/*-src.ts
 | Variable | Default | Meaning |
 |---|---|---|
 | `TRIALRUN_WORKSPACE` | unset | Real folder; switches to workspace mode |
-| `TRIALRUN_STATE` | `<workspace>/.trialrun-session.json` or `./trialrun-session.json` | Session log |
+| `TRIALRUN_STATE` | `<workspace>/.trialrun-session.jsonl` or `./trialrun-session.jsonl` | Session log (JSON Lines) |
 | `TRIALRUN_MODE` | `monitor` | `monitor` or `enforce` (the policy file's `mode` wins) |
 | `TRIALRUN_ROLE` | `student` | `student` or `assessor` |
 

@@ -4,7 +4,8 @@
  *   npm run accuracy -- [dir ...]     (default: accuracy/corpus, accuracy/corpus-heldout-v1, -v2, -v3)
  *
  * A prediction matches a label when the labels are equal and the spans overlap; each label is
- * matched at most once. Exits non-zero if the TUNING corpus (accuracy/corpus) falls below the targets:
+ * matched at most once. Labels in FULL_SPAN must be covered end to end: finding only the first line
+ * of a private key would leave the key material itself unredacted. Exits non-zero if the TUNING corpus (accuracy/corpus) falls below the targets:
  * overall precision >= 0.95, overall recall >= 0.95, and recall >= 0.90 for every label with at
  * least 5 instances. Held-out corpora are reported but never gate the run.
  */
@@ -12,6 +13,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detect } from '../src/detectors.js';
+
+/** Labels whose whole span must be detected for a match. */
+const FULL_SPAN = new Set(['private key']);
 
 interface Span { label: string; category: string; text: string; start: number; end: number }
 interface Counts { tp: number; fp: number; fn: number }
@@ -46,7 +50,8 @@ for (const dir of dirs) {
     const used = new Set<number>();
     for (const p of preds) {
       const pEnd = p.index + p.length;
-      const i = spans.findIndex((s, k) => !used.has(k) && s.label === p.label && p.index < s.end && s.start < pEnd);
+      const i = spans.findIndex((s, k) => !used.has(k) && s.label === p.label
+        && (FULL_SPAN.has(s.label) ? p.index <= s.start && pEnd >= s.end : p.index < s.end && s.start < pEnd));
       const lineNo = text.slice(0, p.index).split('\n').length;
       if (i >= 0) { used.add(i); bump(p.label, 'tp'); }
       else { bump(p.label, 'fp'); errors.push(`  FP ${f}:${lineNo} ${p.label} "${text.slice(p.index, pEnd)}"`); }

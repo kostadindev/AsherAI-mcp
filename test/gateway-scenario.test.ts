@@ -19,7 +19,7 @@ describe('scenario mode, student role', () => {
 
   it('lists files, optionally by folder, hiding blocked ones', async () => {
     const config = makeConfig();
-    new SessionStore(config.statePath).update((s) => { s.blocked.push('oakmere'); });
+    new SessionStore(config.statePath).append({ type: 'set-access', fileId: 'oakmere', note: 'blocked', by: 'assessor' });
     const gw = await connect(config);
     const bank = await gw.json<{ files: { id: string }[] }>('list_files', { folder: 'Bank & Loan' });
     expect(bank.files.map((f) => f.id)).toEqual(['bankstmt', 'loan', 'creditmemo']);
@@ -30,12 +30,12 @@ describe('scenario mode, student role', () => {
 
   it('refuses blocked and unknown files, and unknown sections', async () => {
     const config = makeConfig();
-    new SessionStore(config.statePath).update((s) => { s.blocked.push('passports'); });
+    new SessionStore(config.statePath).append({ type: 'set-access', fileId: 'passports', note: 'blocked', by: 'assessor' });
     const gw = await connect(config);
     expect(await gw.call('read_file', { file_id: 'passports' })).toMatchObject({ isError: true });
     expect(await gw.text('read_file', { file_id: 'nope' })).toBe('No such file: nope');
     expect(await gw.text('read_file', { file_id: 'loan', section_id: 'x' })).toMatch(/has no section "x"\. Sections: terms, schedule, appendix/);
-    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['refused']);
+    expect(new SessionStore(config.statePath).load().events.map((e) => e.type)).toEqual(['set-access', 'refused']);
     await gw.close();
   });
 
@@ -112,7 +112,10 @@ describe('scenario mode, student role', () => {
 
   it('serves the briefing, report and audit log as resources', async () => {
     const gw = await connect(makeConfig());
-    expect(await gw.resource('trialrun://briefing')).toContain('## Data categories');
+    const briefing = await gw.resource('trialrun://briefing');
+    expect(briefing).toContain('## Data categories');
+    // The scenario ships no statement template, so the briefing must not tell the candidate to use one.
+    expect(briefing).not.toMatch(/template/i);
     expect(await gw.resource('trialrun://report')).toContain('Scenario: Fernvale Kitchens Ltd.');
     expect(JSON.parse(await gw.resource('trialrun://audit-log'))).toMatchObject({ blocked: [], events: [] });
     await gw.close();

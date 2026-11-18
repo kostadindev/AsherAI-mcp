@@ -1,6 +1,7 @@
 /**
- * Held-out corpus: 10 documents written AFTER the detectors were tuned, in formats and phrasings the
- * tuning corpus does not use. They are reported separately and were not used to change the detectors.
+ * Held-out corpus v1: 10 documents written AFTER the detectors were tuned, in formats and phrasings the
+ * tuning corpus does not use. Scored once before any change (100% precision, 85.7% recall); its misses
+ * were then fixed, so it is now a regression set, not an unbiased estimate. Held-out v3 is the honest one.
  * Same labelling policy as corpus-src.ts.
  *
  * Run: npx tsx accuracy/corpus-heldout-v1-src.ts   (writes accuracy/corpus-heldout-v1/)
@@ -14,7 +15,7 @@ export const HELDOUT: Doc[] = [
 {
   "service": "bank-feed",
   "version": "1.8.3",
-  "endpoint": "https://feeds.example-bank.accuracy/v2",
+  "endpoint": "https://feeds.example-bank.test/v2",
   "username": "fernvale_feed",
   "password": "[[credential|Lk9#vQ2!pZx7]]",
   "api_token": "[[credential|tok_live_7Hq2Lm9Px4Rt8Vb1]]",

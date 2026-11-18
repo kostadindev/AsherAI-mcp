@@ -20,5 +20,7 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run build
+      # Packs the package, installs the tarball into an empty project and drives the installed bins over stdio.
+      - run: npm run test:package
       # Fails if the detectors drop below the precision/recall targets on the tuning corpus.
       - run: npm run accuracy

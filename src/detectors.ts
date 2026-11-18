@@ -54,6 +54,7 @@ const ADDRESS_WORDS = /\b(road|rd|street|st|lane|ln|close|avenue|ave|way|drive|d
 /** Lines that describe an organisation's premises, not where a person lives. */
 const BUSINESS_ADDRESS = /\b(ltd|limited|plc|llp|inc|gmbh|unit \d+|business park|trading estate|industrial estate|science park|retail park|registered office|head office|house,|suite \d+|floor)\b/i;
 const MONTHS = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*';
+const ANY_DATE = /\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}/;
 const DOB_LABEL = /\b(?:dob|d\.o\.b\.?|date of birth|born|birth ?date)\b/i;
 
 /**
@@ -179,7 +180,8 @@ const RULES: Rule[] = [
   { category: 'cat1', label: 'credential', re: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g },
   { category: 'cat1', label: 'credential', re: /\bsk-[A-Za-z0-9_-]{20,}/g },
   { category: 'cat1', label: 'credential', re: /\b(?:ghp|gho|github_pat)_[A-Za-z0-9_]{20,}/g },
-  { category: 'cat1', label: 'private key', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g },
+  // The whole block, header to footer; a truncated block runs to the end of the text.
+  { category: 'cat1', label: 'private key', re: /-----BEGIN ((?:[A-Z]+ )*)PRIVATE KEY-----[\s\S]*?(?:-----END \1PRIVATE KEY-----|$)/g },
   {
     category: 'cat1', label: 'payment card',
     // Sentence punctuation may follow the number ("…4242."), but not more digits ("4242.50").
@@ -266,9 +268,9 @@ const RULES: Rule[] = [
       const labels = [...`${prefix}0`.matchAll(/([A-Za-z][A-Za-z. ]{1,24})(?::|\s(?=\d))/g)];
       const nearest = labels.at(-1);
       if (!DOB_LABEL.test(nearest?.[1] ?? prefix)) return false;
-      // No other date between the label and this one.
-      const afterLabel = nearest ? prefix.slice(nearest.index) : prefix;
-      return !/\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}/.test(afterLabel.replace(/[^\n]*$/, '').slice(0, -1));
+      // No other date between the label and this one ("DOB: 1979-03-14, 2016-05-01" flags only the first).
+      const afterLabel = nearest ? prefix.slice(nearest.index + (nearest[1]?.length ?? 0)) : prefix;
+      return !ANY_DATE.test(afterLabel);
     },
   },
 ];
@@ -315,24 +317,40 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
       hits.push({ category: r.category, label: r.label, match: redactValue(value), index, length: value.length, line: lineOf(index) + 1 });
     }
   }
-  // Drop hits fully inside an earlier, longer hit (e.g. digits of an IBAN read as a phone).
-  hits.sort((a, b) => a.index - b.index || b.length - a.length);
-  const out: Hit[] = [];
-  for (const h of hits) {
-    const prev = out.at(-1);
-    if (prev && h.index >= prev.index && h.index + h.length <= prev.index + prev.length) {
-      if (h.category === 'cat1' && prev.category === 'cat2') out[out.length - 1] = h; // keep the stricter label
-      continue;
-    }
-    out.push(h);
-  }
-  return out;
+  return mergeHits(text, hits);
 }
 
-/** Replace each detected value with "[redacted: label]". */
-export function redact(text: string, hits: Hit[]): string {
+const severity = (c: Category) => (c === 'cat1' ? 2 : 1);
+
+/**
+ * Merge overlapping hits into one hit per covered interval, so redaction never leaves part of a value
+ * exposed. The merged hit takes the stricter category and the label of its strictest, longest member.
+ */
+export function mergeHits(text: string, hits: readonly Hit[]): Hit[] {
+  const sorted = [...hits].sort((a, b) => a.index - b.index || b.length - a.length);
+  const groups: Hit[][] = [];
+  let groupEnd = -1;
+  for (const h of sorted) {
+    const group = groups.at(-1);
+    if (group && h.index < groupEnd) group.push(h);
+    else groups.push([h]);
+    groupEnd = Math.max(groupEnd, h.index + h.length);
+  }
+  return groups.map((group) => {
+    const start = Math.min(...group.map((h) => h.index));
+    const end = Math.max(...group.map((h) => h.index + h.length));
+    const lead = group.reduce((best, h) => {
+      const order = severity(h.category) - severity(best.category) || h.length - best.length;
+      return order > 0 ? h : best;
+    });
+    return { ...lead, index: start, length: end - start, match: redactValue(text.slice(start, end)), line: Math.min(...group.map((h) => h.line)) };
+  });
+}
+
+/** Replace each detected value with "[redacted: label]". Overlapping hits are merged first. */
+export function redact(text: string, hits: readonly Hit[]): string {
   let out = text;
-  for (const h of [...hits].sort((a, b) => b.index - a.index)) {
+  for (const h of mergeHits(text, hits).sort((a, b) => b.index - a.index)) {
     out = out.slice(0, h.index) + `[redacted: ${h.label}]` + out.slice(h.index + h.length);
   }
   return out;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderReport, stewardship } from '../src/report.js';
 import { cleanNote, MAX_NOTE_LENGTH, scanText } from '../src/scan.js';
-import { freshState, type GatewayEvent, type State } from '../src/state.js';
+import { foldEvents, type GatewayEvent, type State } from '../src/state.js';
 import { first } from './helpers.js';
 
 const ev = (e: Omit<GatewayEvent, 't'>): GatewayEvent => ({ t: '2026-11-18T10:00:00.000Z', ...e });
@@ -25,7 +25,7 @@ describe('stewardship', () => {
 });
 
 describe('renderReport', () => {
-  const state = (events: GatewayEvent[]): State => ({ ...freshState(), startedAt: '2026-11-18T09:00:00.000Z', events });
+  const state = (events: GatewayEvent[]): State => ({ ...foldEvents([]), startedAt: '2026-11-18T09:00:00.000Z', events });
 
   it('reports an empty session', () => {
     const md = renderReport(state([]), 'Workspace mode.');
@@ -75,7 +75,19 @@ describe('scanText', () => {
   });
 });
 
+describe('scanText, repeated markers', () => {
+  it('finds every occurrence of a scenario marker', () => {
+    const hits = scanText('Project Kestrel and Project Kestrel', { terms: [], scenario: true });
+    expect(hits).toHaveLength(2);
+  });
+});
+
 describe('cleanNote', () => {
+  it('redacts every occurrence of a scenario marker', () => {
+    const note = cleanNote('Project Kestrel and Project Kestrel', { terms: [], scenario: true });
+    expect(note).not.toContain('Kestrel');
+  });
+
   it('redacts restricted values and truncates', () => {
     const note = cleanNote(`Pasted JR 48 31 22 C ${'x'.repeat(400)}`, { terms: [], scenario: false });
     expect(note).toContain('[redacted: national insurance number]');

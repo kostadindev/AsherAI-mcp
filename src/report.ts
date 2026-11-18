@@ -8,7 +8,10 @@ export interface Stewardship {
   reason: string;
 }
 
-/** Any Category 1 data reaching the AI scores Zero; Category 2 scores Partial; none scores Full. */
+/**
+ * Any Category 1 data reaching the AI scores Zero; Category 2 scores Partial; none scores Full.
+ * Only disclosures count: data the gateway withheld in enforce mode never reached the AI.
+ */
 export function stewardship(events: readonly GatewayEvent[]): Stewardship {
   const leaks = events.filter((e) => e.type === 'leak');
   if (leaks.some((l) => l.category === 'cat1')) return { leaks, score: 'Zero', reason: 'Category 1 (prohibited) data reached the AI.' };
@@ -29,7 +32,9 @@ export function renderReport(state: State, context: string): string {
   const { leaks, score, reason } = stewardship(state.events);
   const reads = [...new Set(state.events.filter((e) => e.type === 'ai-open').map((e) => e.fileId ?? '?'))];
   const refused = state.events.filter((e) => e.type === 'refused').length;
+  const withheld = state.events.filter((e) => e.type === 'withheld').length;
   const lines = ['# AI literacy report', '', `Session started ${state.startedAt}. ${context}`, '', `## Data stewardship: ${score}`, reason, ''];
+  if (withheld) lines.push(`${withheld} restricted item(s) withheld from the AI by enforce mode.`, '');
 
   if (leaks.length) {
     const counts = new Map<string, number>();

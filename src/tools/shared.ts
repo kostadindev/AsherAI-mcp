@@ -2,19 +2,18 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { renderReport, stewardship } from '../report.js';
 import { cleanNote, scanText } from '../scan.js';
-import { FILES, fileRestriction } from '../scenario/scenario.js';
-import type { GatewayEvent } from '../state.js';
+import type { GatewayEvent, NewEvent } from '../state.js';
 import { jsonResult, textResult, type ToolContext } from './context.js';
 
 /** Restriction level and channels for every source that leaked, for the audit log. */
-function restrictedSources(leaks: readonly GatewayEvent[]) {
+function restrictedSources(leaks: readonly GatewayEvent[], describeSource: ToolContext['describeSource']) {
   const ids = [...new Set(leaks.map((l) => l.fileId).filter((id): id is string => Boolean(id)))];
   return ids.map((id) => {
     const fromSource = leaks.filter((l) => l.fileId === id);
-    const file = FILES.find((f) => f.id === id);
+    const source = describeSource(id);
     return {
-      file: file?.name ?? id,
-      restriction: file ? fileRestriction(file) : [...new Set(fromSource.map((l) => l.category))].join('/'),
+      file: source?.name ?? id,
+      restriction: source?.restriction ?? [...new Set(fromSource.map((l) => l.category))].join('/'),
       channels: [...new Set(fromSource.map((l) => l.channel))],
     };
   });
@@ -30,10 +29,11 @@ export function registerSharedTools(server: McpServer, ctx: ToolContext): void {
     inputSchema: { text: z.string(), record: z.boolean().optional().describe('Log hits as answer leaks (default true)') },
   }, ({ text, record }) => {
     const hits = scanText(text, ctx.scanOptions());
-    ctx.store.append({ type: 'check-text', note: `${hits.length} hit(s)` });
+    const events: NewEvent[] = [{ type: 'check-text', note: `${hits.length} hit(s)` }];
     if (record !== false) {
-      for (const h of hits) ctx.store.append({ type: 'leak', channel: 'ai-answer', category: h.category, label: h.label, line: h.line, markers: [h.match] });
+      for (const h of hits) events.push({ type: 'leak', channel: 'ai-answer', category: h.category, label: h.label, line: h.line, markers: [h.match] });
     }
+    ctx.store.append(...events);
     return jsonResult({ clean: hits.length === 0, hits: hits.map(({ category, label, match, line }) => ({ category, label, match, line })) });
   });
 
@@ -66,7 +66,7 @@ export function registerSharedTools(server: McpServer, ctx: ToolContext): void {
     const { leaks, score, reason } = stewardship(state.events);
     return jsonResult({
       startedAt: state.startedAt, mode: ctx.mode(), role: ctx.config.role, workspace: ctx.config.workspace, blocked: state.blocked,
-      dataStewardship: { score, reason, restrictedSources: restrictedSources(leaks) },
+      dataStewardship: { score, reason, restrictedSources: restrictedSources(leaks, (id) => ctx.describeSource(id)) },
       events: state.events,
     });
   });

@@ -130,6 +130,51 @@ describe('detect', () => {
   });
 });
 
+describe('private keys', () => {
+  const KEY = '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAxyz123\nQ29uZmlkZW50aWFsS2V5Qm9keQ==\n-----END RSA PRIVATE KEY-----';
+
+  it('covers the whole block, header to footer', () => {
+    const hit = first(detect(`config:\n${KEY}\nend`).filter((h) => h.label === 'private key'));
+    expect(hit.length).toBe(KEY.length);
+  });
+
+  it('redacts the key body, not just the header', () => {
+    const text = `config:\n${KEY}\nend`;
+    const out = redact(text, detect(text));
+    expect(out).toBe('config:\n[redacted: private key]\nend');
+  });
+
+  it('covers a truncated block to the end of the text', () => {
+    const text = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC';
+    expect(first(detect(text)).length).toBe(text.length);
+  });
+});
+
+describe('overlapping detections', () => {
+  it('merge into one interval covering both, with the stricter category', () => {
+    const text = 'sort code 40-22-18 account 31926819';
+    const hits = detect(text, [{ term: '319', category: 'cat1' }]);
+    expect(hits).toHaveLength(1);
+    const hit = first(hits);
+    expect(hit.category).toBe('cat1');
+    expect(text.slice(hit.index, hit.index + hit.length)).toBe('40-22-18 account 31926819');
+    expect(redact(text, hits)).toBe('sort code [redacted: sensitive term]');
+  });
+
+  it('merge partial overlaps without corrupting the redaction', () => {
+    const text = 'call 07700 900123 now';
+    const hits = detect(text, [{ term: '900123 now', category: 'cat2' }]);
+    expect(redact(text, hits)).not.toMatch(/\d/);
+  });
+});
+
+describe('date of birth', () => {
+  it('does not flag a second date after the birth date on the same line', () => {
+    const labels = detect('Date of birth: 1979-03-14, 2016-05-01').filter((h) => h.label === 'date of birth');
+    expect(labels).toHaveLength(1);
+  });
+});
+
 describe('redact', () => {
   it('replaces every value with its label', () => {
     const text = 'password: Kingfisher!2025 and card 4111 1111 1111 1111';

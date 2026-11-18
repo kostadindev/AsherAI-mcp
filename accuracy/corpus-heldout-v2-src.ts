@@ -1,6 +1,8 @@
 /**
  * Held-out corpus v2: 12 documents written AFTER the round-2 fixes (quoted keys, bearer tokens / JWTs,
- * card numbers followed by punctuation). Never used to change the detectors; reported separately.
+ * card numbers followed by punctuation). Scored once before any change (90.0% precision, 81.8% recall);
+ * its misses were then fixed, so it is now a regression set. One label was corrected after that first run
+ * (a sort code and account in a JSON expense export had been left unlabelled).
  * Same labelling policy as corpus-src.ts. Placeholders ("YOUR_API_KEY", "${{ secrets.X }}", "****")
  * are not secrets and are not labelled.
  *

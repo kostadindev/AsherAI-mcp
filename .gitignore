@@ -1,5 +1,6 @@
 node_modules/
 dist/
 coverage/
-.trialrun-session.json
-trialrun-session.json
+.trialrun-session.json*
+trialrun-session.json*
+*.lock

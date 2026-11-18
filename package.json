@@ -19,6 +19,7 @@
     "start": "node dist/bin/server.js",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
+    "test:package": "tsx scripts/package-smoke.ts",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "check": "npm run typecheck && npm run lint && npm run coverage",

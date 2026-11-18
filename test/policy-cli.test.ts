@@ -1,9 +1,15 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runPolicy } from '../src/policy-cli.js';
 import { SessionStore } from '../src/state.js';
-import { loadPolicy } from '../src/workspace.js';
+import { readPolicy, type Policy } from '../src/workspace.js';
+
+function loadPolicy(root: string): Policy {
+  const result = readPolicy(root);
+  if (!result.ok) throw new Error(result.error);
+  return result.policy;
+}
 import { makeConfig, tempDir } from './helpers.js';
 
 function run(argv: string[], config = makeConfig()) {
@@ -17,7 +23,7 @@ function workspaceConfig() {
   const root = tempDir('trialrun-cli-');
   writeFileSync(join(root, 'notes.md'), 'hello');
   writeFileSync(join(root, 'credentials.txt'), 'password: x');
-  return { root, config: makeConfig({ workspace: root, statePath: join(root, '.trialrun-session.json') }) };
+  return { root, config: makeConfig({ workspace: root, statePath: join(root, '.trialrun-session.jsonl') }) };
 }
 
 describe('policy CLI, workspace mode', () => {
@@ -29,7 +35,20 @@ describe('policy CLI, workspace mode', () => {
     expect(loadPolicy(root).block).toEqual(['credentials.txt', '*.env']);
     expect(run(['allow', '*.env'], config).code).toBe(0);
     expect(loadPolicy(root).block).toEqual(['credentials.txt']);
-    expect(new SessionStore(config.statePath).load().events.map((e) => e.note)).toEqual(['blocked', 'blocked', 'allowed']);
+    const events = new SessionStore(config.statePath).load().events;
+    expect(events.map((e) => e.type)).toEqual(['policy-change', 'policy-change', 'policy-change']);
+    expect(events.map((e) => e.note)).toEqual(['blocked: credentials.txt, *.env', 'blocked: credentials.txt', 'allowed: *.env']);
+  });
+
+  it('refuses to change or show an invalid policy and leaves the file untouched', () => {
+    const { root, config } = workspaceConfig();
+    writeFileSync(join(root, '.trialrun.json'), '{ "block": "not-a-list" }');
+    for (const argv of [['show'], ['block', 'x'], ['mode', 'monitor']]) {
+      const result = run(argv, config);
+      expect(result.code).toBe(1);
+      expect(result.err).toMatch(/is invalid/);
+    }
+    expect(readFileSync(join(root, '.trialrun.json'), 'utf8')).toBe('{ "block": "not-a-list" }');
   });
 
   it('adds, replaces and removes sensitive terms without echoing them', () => {

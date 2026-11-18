@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { POLICY_FILE } from '../src/config.js';
+import { effectiveMode } from '../src/gateway.js';
 import { savePolicy } from '../src/workspace.js';
 import { connect, first, makeConfig, tempDir } from './helpers.js';
 
@@ -20,7 +21,7 @@ function workspace() {
   writeFileSync(join(root, 'report.pdf'), '%PDF-1.7');
   symlinkSync(join(outside, 'secret.txt'), join(root, 'escape.txt'));
   savePolicy(root, { block: ['credentials.txt'], sensitive_terms: [{ term: 'Project Kestrel', category: 'cat1' }] });
-  return { root, config: makeConfig({ workspace: root, statePath: join(root, '.trialrun-session.json') }) };
+  return { root, config: makeConfig({ workspace: root, statePath: join(root, '.trialrun-session.jsonl') }) };
 }
 
 describe('workspace mode', () => {
@@ -87,8 +88,102 @@ describe('workspace mode', () => {
     expect(notes).toContain('[redacted: email]');
     expect(notes).toContain('[redacted: phone number]');
     expect(notes).toContain('restricted item(s) redacted');
-    expect(await gw.text('read_file', { path: 'deal.md' })).toContain('[redacted: sensitive term]');
+    expect(notes).not.toContain('priya.raman@example.co.uk');
+    expect(notes).not.toContain('07700 900123');
+    const deal = await gw.text('read_file', { path: 'deal.md' });
+    expect(deal).toContain('[redacted: sensitive term]');
+    expect(deal).not.toContain('Kestrel');
     expect(await gw.json<{ mode: string; sensitiveTerms: number }>('get_access_policy')).toMatchObject({ mode: 'enforce', sensitiveTerms: 1 });
+    expect((await gw.json<{ dataStewardship: { score: string } }>('get_audit_log')).dataStewardship.score).toBe('Full');
+    await gw.close();
+  });
+
+  it('detects on the whole file when reading a line range', async () => {
+    const { root, config } = workspace();
+    writeFileSync(join(root, 'staff.csv'), 'name,start_date,date_of_birth,postcode\nLeah Morgan,2025-02-03,1994-07-12,CB4 2QW\n');
+    const gw = await connect(config);
+    const row = await gw.text('read_file', { path: 'staff.csv', start_line: 2, end_line: 2 });
+    expect(row).toContain('date of birth');
+    const audit = await gw.json<{ events: { type: string; line?: number }[] }>('get_audit_log');
+    expect(audit.events.filter((e) => e.type === 'leak').map((e) => e.line)).toEqual([2, 2]);
+    await gw.close();
+  });
+
+  it('redacts contextual data in a line range in enforce mode', async () => {
+    const { root, config } = workspace();
+    writeFileSync(join(root, 'staff.csv'), 'name,start_date,date_of_birth,postcode\nLeah Morgan,2025-02-03,1994-07-12,CB4 2QW\n');
+    savePolicy(root, { block: [], sensitive_terms: [], mode: 'enforce' });
+    const gw = await connect(config);
+    const row = await gw.text('read_file', { path: 'staff.csv', start_line: 2, end_line: 2 });
+    expect(row).not.toContain('1994-07-12');
+    expect(row).not.toContain('CB4 2QW');
+    await gw.close();
+  });
+
+  it('in enforce mode records findings as withheld and keeps the score Full', async () => {
+    const { root, config } = workspace();
+    savePolicy(root, { block: [], sensitive_terms: [], mode: 'enforce' });
+    const gw = await connect(config);
+    const creds = await gw.text('read_file', { path: 'credentials.txt' });
+    expect(creds).not.toContain('Kingfisher!2025');
+    const audit = await gw.json<{ events: { type: string }[]; dataStewardship: { score: string } }>('get_audit_log');
+    expect(audit.dataStewardship.score).toBe('Full');
+    expect(audit.events.some((e) => e.type === 'withheld')).toBe(true);
+    expect(audit.events.some((e) => e.type === 'leak')).toBe(false);
+    expect(await gw.text('get_report')).toContain('withheld');
+    await gw.close();
+  });
+
+  it.each([
+    ['null policy', 'null'],
+    ['unparseable policy', '{ nope'],
+  ])('fails closed on a %s', async (_name, body) => {
+    const { root, config } = workspace();
+    writeFileSync(join(root, POLICY_FILE), body);
+    const gw = await connect(config);
+    const read = await gw.call('read_file', { path: 'notes.md' });
+    expect(read.isError).toBe(true);
+    expect(first(read.content).text).toContain('policy');
+    expect((await gw.call('list_files')).isError).toBe(true);
+    expect((await gw.call('get_access_policy')).isError).toBe(true);
+    expect(effectiveMode({ ...config, mode: 'monitor' })).toBe('enforce');
+    await gw.close();
+  });
+
+  it('never serves hidden files, internal symlinks to blocked files, or a custom session log', async () => {
+    const { root } = workspace();
+    mkdirSync(join(root, '.git'));
+    writeFileSync(join(root, '.env'), 'API_KEY=abcd1234efgh5678\n');
+    writeFileSync(join(root, '.git', 'config'), '[remote]\n');
+    symlinkSync(join(root, 'credentials.txt'), join(root, 'creds-alias.txt'));
+    const config = makeConfig({ workspace: root, statePath: join(root, 'audit.json') });
+    const gw = await connect(config);
+    await gw.text('read_file', { path: 'notes.md' });
+    for (const path of ['.env', '.git/config', 'creds-alias.txt', 'audit.json']) {
+      expect((await gw.call('read_file', { path })).isError, path).toBe(true);
+    }
+    const listing = await gw.json<{ files: { path: string }[] }>('list_files');
+    expect(listing.files.map((f) => f.path)).not.toContain('audit.json');
+    expect(listing.files.map((f) => f.path)).not.toContain('creds-alias.txt');
+    await gw.close();
+  });
+
+  it('describes workspace files by path, not by scenario metadata', async () => {
+    const { root, config } = workspace();
+    writeFileSync(join(root, 'logins'), 'password: Kingfisher!2025\n');
+    const gw = await connect(config);
+    await gw.text('read_file', { path: 'logins' });
+    const audit = await gw.json<{ dataStewardship: { restrictedSources: { file: string; restriction: string }[] } }>('get_audit_log');
+    expect(audit.dataStewardship.restrictedSources).toEqual([{ file: 'logins', restriction: 'cat1', channels: ['ai-opened'] }]);
+    await gw.close();
+  });
+
+  it('writes the log once per tool call', async () => {
+    const { config } = workspace();
+    const gw = await connect(config);
+    await gw.text('read_file', { path: 'finance/payroll.csv' });
+    const lines = readFileSync(config.statePath, 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
     await gw.close();
   });
 

@@ -168,9 +168,9 @@ Total claimed £232.90. Approved 07/01/2026.
   { file: '15-deploy-key.txt', body: `
 Deployment notes for the reconciliation bot. Do not commit this file.
 
-[[private key|-----BEGIN OPENSSH PRIVATE KEY-----]]
+[[private key|-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
------END OPENSSH PRIVATE KEY-----
+-----END OPENSSH PRIVATE KEY-----]]
 
 Host: recon.internal.example  Port 2222  User: recon
 ` },

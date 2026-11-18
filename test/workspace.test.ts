@@ -1,8 +1,8 @@
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { POLICY_FILE, STATE_FILE } from '../src/config.js';
-import { emptyPolicy, fileType, globToRegExp, isBlockedPath, loadPolicy, readText, safeResolve, savePolicy, walk } from '../src/workspace.js';
+import { emptyPolicy, fileType, globToRegExp, isBlockedPath, lineRange, readDocument, readPolicy, safeResolve, savePolicy, walk, workspaceAccess } from '../src/workspace.js';
 import { tempDir } from './helpers.js';
 
 function workspace() {
@@ -47,11 +47,6 @@ describe('globToRegExp', () => {
 });
 
 describe('isBlockedPath', () => {
-  it('always blocks gateway files at any depth', () => {
-    expect(isBlockedPath(POLICY_FILE, emptyPolicy())).toBe(true);
-    expect(isBlockedPath(`sub/${STATE_FILE}`, emptyPolicy())).toBe(true);
-  });
-
   it('applies owner patterns', () => {
     const policy = { ...emptyPolicy(), block: ['*.env'] };
     expect(isBlockedPath('prod.env', policy)).toBe(true);
@@ -59,38 +54,22 @@ describe('isBlockedPath', () => {
   });
 });
 
-describe('loadPolicy / savePolicy', () => {
+describe('readPolicy / savePolicy', () => {
   it('returns an empty policy when there is no file', () => {
-    expect(loadPolicy(tempDir())).toEqual(emptyPolicy());
+    expect(readPolicy(tempDir())).toEqual({ ok: true, policy: emptyPolicy() });
   });
 
-  it('returns an empty policy for malformed JSON', () => {
+  it('accepts a partial policy', () => {
     const root = tempDir();
-    writeFileSync(join(root, POLICY_FILE), '{ not json');
-    expect(loadPolicy(root)).toEqual(emptyPolicy());
-  });
-
-  it('drops malformed entries and unknown modes', () => {
-    const root = tempDir();
-    writeFileSync(join(root, POLICY_FILE), JSON.stringify({
-      block: ['*.env', 3, null],
-      sensitive_terms: [{ term: 'Kestrel', category: 'cat1' }, { term: 'x', category: 'cat3' }, 'bad', null],
-      mode: 'loud',
-    }));
-    expect(loadPolicy(root)).toEqual({ block: ['*.env'], sensitive_terms: [{ term: 'Kestrel', category: 'cat1' }], mode: undefined });
-  });
-
-  it('ignores fields that are not arrays', () => {
-    const root = tempDir();
-    writeFileSync(join(root, POLICY_FILE), JSON.stringify({ block: 'x', sensitive_terms: {} }));
-    expect(loadPolicy(root)).toEqual(emptyPolicy());
+    writeFileSync(join(root, POLICY_FILE), JSON.stringify({ block: ['*.env'] }));
+    expect(readPolicy(root)).toEqual({ ok: true, policy: { block: ['*.env'], sensitive_terms: [] } });
   });
 
   it('round-trips through savePolicy', () => {
     const root = tempDir();
     const policy = { block: ['secrets/**'], sensitive_terms: [{ term: 'Kestrel', category: 'cat2' as const }], mode: 'enforce' as const };
     savePolicy(root, policy);
-    expect(loadPolicy(root)).toEqual(policy);
+    expect(readPolicy(root)).toEqual({ ok: true, policy });
   });
 });
 
@@ -137,31 +116,111 @@ describe('walk', () => {
 
   it('stops at the limit and says so', () => {
     const { root } = workspace();
-    const listing = walk(root, emptyPolicy(), 2);
+    const listing = walk(root, emptyPolicy(), { fileLimit: 2 });
     expect(listing.files).toHaveLength(2);
     expect(listing.truncated).toBe(true);
   });
+
+  it('stops after visiting the directory cap and says so', () => {
+    const root = tempDir('trialrun-dirs-');
+    for (const d of ['a', 'b', 'c']) {
+      mkdirSync(join(root, d));
+      writeFileSync(join(root, d, 'f.txt'), 'x');
+    }
+    const listing = walk(root, emptyPolicy(), { dirLimit: 2 });
+    expect(listing.truncated).toBe(true);
+    expect(listing.files.length).toBeLessThan(3);
+  });
 });
 
-describe('readText', () => {
-  const { root } = workspace();
+describe('one exclusion rule for listing and reading', () => {
+  function tree() {
+    const root = tempDir('trialrun-excl-');
+    mkdirSync(join(root, '.git'));
+    mkdirSync(join(root, 'secrets'));
+    writeFileSync(join(root, '.env'), 'API_KEY=abcd1234efgh5678\n');
+    writeFileSync(join(root, '.git', 'config'), '[remote]\n');
+    writeFileSync(join(root, 'audit.json'), '{}');
+    writeFileSync(join(root, 'public.txt'), 'hello');
+    symlinkSync(join(root, 'public.txt'), join(root, 'secrets', 'alias.txt'));
+    symlinkSync(join(root, '.env'), join(root, 'env-link.txt'));
+    const access = workspaceAccess(root, { ...emptyPolicy(), block: ['secrets/**'] }, join(root, 'audit.json'));
+    return { root, access };
+  }
 
-  it('reads the whole file', () => {
-    const slice = readText(join(root, 'notes.md'));
-    expect(slice).toMatchObject({ firstLine: 1, totalLines: 4 });
-    expect(slice.text).toContain('line three');
+  it.each(['.env', '.git/config', 'audit.json', 'secrets/alias.txt', 'env-link.txt'])('refuses to read %s', (path) => {
+    const { access } = tree();
+    expect(() => access.resolve(path)).toThrow();
   });
 
-  it('reads an inclusive line range and clamps it', () => {
-    expect(readText(join(root, 'notes.md'), 2, 2)).toMatchObject({ text: 'line two', firstLine: 2, lastLine: 2 });
-    expect(readText(join(root, 'notes.md'), 3, 99)).toMatchObject({ firstLine: 3, lastLine: 4 });
+  it('lists none of them', () => {
+    const { access } = tree();
+    expect(access.list().files.map((f) => f.path)).toEqual(['public.txt']);
+  });
+
+  it('reads an allowed file', () => {
+    const { access } = tree();
+    expect(access.resolve('public.txt').rel).toBe('public.txt');
+  });
+});
+
+describe('policy validation (fail closed)', () => {
+  it.each([
+    ['null', 'null'],
+    ['not JSON', '{ nope'],
+    ['block not an array', '{"block": "x"}'],
+    ['a non-string pattern', '{"block": ["ok", 3]}'],
+    ['a bad term', '{"sensitive_terms": [{"term": "x", "category": "cat3"}]}'],
+    ['an unknown mode', '{"mode": "loud"}'],
+  ])('rejects %s', (_name, body) => {
+    const root = tempDir();
+    writeFileSync(join(root, POLICY_FILE), body);
+    const result = readPolicy(root);
+    expect(result.ok).toBe(false);
+  });
+
+  it('saves atomically, leaving no temporary files', () => {
+    const root = tempDir();
+    savePolicy(root, { block: ['*.env'], sensitive_terms: [] });
+    expect(readdirSync(root)).toEqual([POLICY_FILE]);
+  });
+});
+
+describe('walk on cyclic symlinks', () => {
+  it('visits each real directory once', () => {
+    const root = tempDir('trialrun-cycle-');
+    mkdirSync(join(root, 'a', 'b'), { recursive: true });
+    writeFileSync(join(root, 'a', 'b', 'f.txt'), 'x');
+    symlinkSync(root, join(root, 'a', 'b', 'up'));
+    symlinkSync(join(root, 'a'), join(root, 'a', 'b', 'sideways'));
+    expect(walk(root, emptyPolicy()).files.map((f) => f.path)).toEqual(['a/b/f.txt']);
+  });
+});
+
+describe('readDocument / lineRange', () => {
+  const { root } = workspace();
+  const slice = (start?: number, end?: number) => {
+    const doc = readDocument(join(root, 'notes.md'));
+    const range = lineRange(doc, start, end);
+    return { ...range, text: doc.text.slice(range.start, range.end) };
+  };
+
+  it('reads the whole file', () => {
+    expect(readDocument(join(root, 'notes.md')).totalLines).toBe(4);
+    expect(slice()).toMatchObject({ firstLine: 1, lastLine: 4 });
+    expect(slice().text).toContain('line three');
+  });
+
+  it('gives an inclusive line range as offsets and clamps it', () => {
+    expect(slice(2, 2)).toMatchObject({ text: 'line two', firstLine: 2, lastLine: 2 });
+    expect(slice(3, 99)).toMatchObject({ firstLine: 3, lastLine: 4 });
   });
 
   it('refuses PDF and Office files with a clear message', () => {
-    expect(() => readText(join(root, 'report.pdf'))).toThrow('not parsed yet');
+    expect(() => readDocument(join(root, 'report.pdf'))).toThrow('not parsed yet');
   });
 
   it('refuses binary content', () => {
-    expect(() => readText(join(root, 'image.bin'))).toThrow('binary');
+    expect(() => readDocument(join(root, 'image.bin'))).toThrow('binary');
   });
 });
