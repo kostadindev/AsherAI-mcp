@@ -22,11 +22,55 @@ the ones the task needs.
 
 ## Quickstart
 
-Claude Code, on a folder you want to work on:
+Needs **Node 20+** and **git**. Nothing to clone: `npx` installs straight from GitHub. The first run takes about a
+minute while npm builds the package; later runs are instant.
+
+### 1. Run the demo (no agent or API key needed)
+
+```bash
+npx -y -p github:kostadindev/trialrun-mcp trialrun-demo ./trialrun-demo
+```
+
+This writes a small fictional client folder (`budget.csv`, `payroll.csv`, `client-email.txt`) with a policy that
+blocks `payroll.csv` and marks "Project Kestrel" as confidential. It then starts the gateway and plays the tool
+calls an agent would make, printing what the gateway does at each step:
+
+1. lists the files (payroll is hidden by policy);
+2. reads `budget.csv` (allowed, nothing restricted);
+3. tries `payroll.csv` (refused);
+4. reads `client-email.txt` (allowed; the bank details and the confidential term are flagged and logged);
+5. checks a draft answer and catches the account number before it is sent;
+6. records a habit moment, as the coaching skill would;
+7. prints the AI literacy report.
+
+It ends with `Demo complete.` and the command for step 2. The folder is kept; re-running the demo resets its log.
+
+### 2. Connect a real agent to the demo folder
+
+```bash
+claude mcp add trialrun -e TRIALRUN_WORKSPACE="$PWD/trialrun-demo" -- npx -y github:kostadindev/trialrun-mcp
+claude
+```
+
+In Claude Code, `/mcp` should list `trialrun` as connected. Then try:
+
+- "What's the average salary in payroll.csv?" (the gateway refuses the file; the agent should say so, not guess)
+- "Summarise client-email.txt" (the read is logged and the bank details are flagged)
+- "Show me my AI literacy report" (calls `get_report`)
+
+For short coaching tips while you work, add the skill inside Claude Code:
+`/plugin marketplace add kostadindev/trialrun-skill`, then `/plugin install trialrun@trialrun`
+(see [trialrun-skill](https://github.com/kostadindev/trialrun-skill)).
+
+Remove it later with `claude mcp remove trialrun`.
+
+### 3. Use it on your own folder
 
 ```bash
 claude mcp add trialrun -e TRIALRUN_WORKSPACE=/path/to/folder -- npx -y github:kostadindev/trialrun-mcp
 ```
+
+Block anything the AI must not read first (see [Owner controls](#owner-controls)).
 
 Claude Desktop (`claude_desktop_config.json`):
 
@@ -161,6 +205,8 @@ npm run check      # typecheck + lint + tests with coverage (thresholds: 90% lin
 npm run build      # compile src/ to dist/
 npm run accuracy   # detector precision and recall on the labelled corpora
 npm run test:package  # after build: npm pack, install the tarball in a temp project, drive the bins over stdio
+npm run test:online   # install from GitHub with an empty npm cache, as the Quickstart does, and run the demo
+node dist/bin/demo.js ./trialrun-demo   # the demo, from a local build
 npm run corpus     # regenerate the corpora from accuracy/*-src.ts
 ```
 
@@ -172,7 +218,7 @@ npm run corpus     # regenerate the corpora from accuracy/*-src.ts
 | `src/workspace.ts` | Policy file, globs, safe path resolution, listing and reading |
 | `src/state.ts`, `src/report.ts`, `src/scan.ts` | Session log, stewardship score and report, text scanning |
 | `src/policy-cli.ts` | Owner / assessor commands |
-| `src/bin/` | `trialrun-mcp` and `trialrun-policy` entry points |
+| `src/bin/` | `trialrun-mcp`, `trialrun-policy` and `trialrun-demo` entry points |
 | `src/scenario/` | The built-in TrialRun demo files and markers |
 | `test/` | Vitest suites |
 | `accuracy/` | Labelled corpora and the precision/recall scorer |
