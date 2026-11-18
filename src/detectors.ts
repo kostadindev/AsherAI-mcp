@@ -213,7 +213,13 @@ const RULES: Rule[] = [
   },
   {
     category: 'cat2', label: 'bank account',
-    re: /\b\d{2}-\d{2}-\d{2}\b[^\n\d]{0,30}\b\d{8}\b/g,
+    // Sort code then account number, on one line or the next (supplier emails, remittance advice).
+    re: /\b\d{2}-\d{2}-\d{2}\b[^\d]{0,40}?\b\d{8}\b/g,
+  },
+  {
+    category: 'cat2', label: 'bank account',
+    // An 8-digit number explicitly labelled as an account number.
+    re: /\b(?:account\s+(?:number|no\.?)|acc(?:t|ount)?\.?\s*no\.?|a\/c(?:\s*no\.?)?)\s*[:#]?\s*\d{8}\b/gi,
   },
   {
     category: 'cat2', label: 'phone number',
