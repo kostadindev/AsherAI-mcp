@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8",
+      "start": 61,
+      "end": 101
+    },
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "sk-proj-9fK2mQ7xLwP3vT8sN1bH4cR6yU0eD5aZ",
+      "start": 117,
+      "end": 157
+    }
+  ]
+}

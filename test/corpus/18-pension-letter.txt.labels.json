@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB7 5EP",
+      "start": 138,
+      "end": 145
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "SN 72 05 18 B",
+      "start": 193,
+      "end": 206
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "19 July 1988",
+      "start": 271,
+      "end": 283
+    }
+  ]
+}

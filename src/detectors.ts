@@ -51,7 +51,59 @@ function ibanValid(raw: string): boolean {
 }
 
 const ADDRESS_WORDS = /\b(road|rd|street|st|lane|ln|close|avenue|ave|way|drive|dr|rise|walk|court|ct|place|pl|crescent|gardens|terrace|hill|view|square|grove|mews|row|park)\b/i;
+/** Lines that describe an organisation's premises, not where a person lives. */
+const BUSINESS_ADDRESS = /\b(ltd|limited|plc|llp|inc|gmbh|unit \d+|business park|trading estate|industrial estate|science park|retail park|registered office|head office|house,|suite \d+|floor)\b/i;
 const MONTHS = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*';
+const DOB_LABEL = /\b(?:dob|d\.o\.b\.?|date of birth|born|birth ?date)\b/i;
+
+/**
+ * Role mailboxes (accounts@, info@, noreply@ …) belong to a function, not a person, so they are not
+ * personal data. Matched on the first token of the local part.
+ */
+const ROLE_MAILBOX = new Set([
+  'accounts', 'account', 'info', 'finance', 'invoices', 'invoice', 'billing', 'sales', 'support', 'help', 'helpdesk',
+  'noreply', 'no-reply', 'donotreply', 'do-not-reply', 'admin', 'office', 'contact', 'enquiries', 'enquiry', 'hello',
+  'team', 'payroll', 'hr', 'careers', 'jobs', 'notices', 'notifications', 'credit', 'creditcontrol', 'ap', 'ar',
+  'payables', 'receivables', 'treasury', 'compliance', 'legal', 'press', 'media', 'marketing', 'orders', 'purchasing',
+  'procurement', 'reception', 'service', 'customerservice', 'customer', 'relationship', 'operations', 'ops', 'it',
+  'security', 'privacy', 'dpo', 'webmaster', 'postmaster', 'creditors', 'remittance', 'remittances', 'tax', 'vat', 'audit',
+]);
+const isRoleMailbox = (email: string) => {
+  const local = email.split('@')[0].toLowerCase();
+  return ROLE_MAILBOX.has(local) || ROLE_MAILBOX.has(local.split(/[._+-]/)[0]);
+};
+
+/** Setting names that are about passwords rather than holding one (PASSWORD_MIN_LENGTH, token_expiry_days …). */
+const CREDENTIAL_SETTING = /(length|policy|min|max|expiry|expires|expire|days|timeout|ttl|rotation|count|attempts|retries|reset|url|uri|file|path|enabled|disabled|required|header|type|name|id_type|hint|format)/i;
+const MASKED = /^[*•x#.]+$/i;
+const PLACEHOLDER = /^(?:<[^>]*>|\$\{?[A-Z_]+\}?|changeme|required|none|null|n\/a|tbc|tbd|unchanged|reset|redacted|hidden|blank|empty|set|not set|never|required\.?)$/i;
+
+/** Column name of a CSV cell, read from the first line of the text. */
+function csvHeaderFor(text: string, lineText: string, index: number, lineStart: number): string | null {
+  const firstLine = text.slice(0, text.indexOf('\n') === -1 ? text.length : text.indexOf('\n'));
+  if (!firstLine.includes(',') || firstLine === lineText) return null;
+  const splitCsv = (s: string) => {
+    const cells: { start: number; value: string }[] = [];
+    let i = 0;
+    while (i <= s.length) {
+      let start = i;
+      let value = '';
+      if (s[i] === '"') { const end = s.indexOf('"', i + 1); value = s.slice(i + 1, end === -1 ? s.length : end); i = (end === -1 ? s.length : end + 1); start++; }
+      else { const end = s.indexOf(',', i); value = s.slice(i, end === -1 ? s.length : end); i = end === -1 ? s.length : end; }
+      cells.push({ start, value });
+      if (s[i] === ',') i++; else break;
+    }
+    return cells;
+  };
+  const cells = splitCsv(lineText);
+  const header = splitCsv(firstLine).map((c) => c.value.trim().toLowerCase());
+  // Only a real table: at least 3 columns, and this row has the same shape as the header.
+  if (header.length < 3 || cells.length !== header.length) return null;
+  const offset = index - lineStart;
+  let col = -1;
+  cells.forEach((c, k) => { if (offset >= c.start) col = k; });
+  return col >= 0 ? header[col] : null;
+}
 
 interface Rule {
   category: DetCategory;
@@ -59,25 +111,59 @@ interface Rule {
   re: RegExp;
   /** Which capture group holds the sensitive value (default whole match). */
   group?: number;
-  check?: (value: string, ctx: { text: string; index: number; lineText: string }) => boolean;
+  check?: (value: string, ctx: { text: string; index: number; lineText: string; lineStart: number; match: RegExpMatchArray }) => boolean;
+  /** Trim trailing punctuation from the captured value before checking and reporting. */
+  trimPunct?: boolean;
 }
+
+const SECRET_WORD = '(?:password|passwd|passcode|pwd|pw|pass|api[_ -]?key|apikey|secret|access[_ -]?key|access[_ -]?token|auth[_ -]?token|token|client[_ -]?secret|private[_ -]?key)';
 
 const RULES: Rule[] = [
   // ── Category 1 ──
   {
     category: 'cat1', label: 'credential',
-    // A labelled secret: "password: hunter2", "api_key=…", "pw: …". Needs a separator and a value.
-    re: /(?<![A-Za-z])(?:password|passwd|passcode|pwd|pw|pass|api[_ -]?key|secret(?:[_ -]?key)?|access[_ -]?token|auth[_ -]?token|token|client[_ -]?secret)(?![A-Za-z])\s*[:=]\s*["']?([^\s"',;]{4,})/gi,
+    // A labelled secret: "password: hunter2", "DB_PASSWORD=…", "aws_secret_access_key = …".
+    // The setting name may wrap the secret word (DB_PASSWORD, XERO_CLIENT_SECRET) but must not be a
+    // setting *about* passwords (PASSWORD_MIN_LENGTH).
+    // Keys may be quoted, as in JSON ("password": "…") or YAML (api_key: "…").
+    re: new RegExp(`(?<![A-Za-z0-9])([A-Za-z0-9_.-]*?${SECRET_WORD}[A-Za-z0-9_]*)["']?\\s*[:=]\\s*["']?([^\\s"',;]{4,})`, 'gi'),
+    group: 2,
+    trimPunct: true,
+    check: (v, { match }) => {
+      const name = match[1];
+      // The secret word must be a whole part of the name (DB_PASSWORD, clientSecret), not part of
+      // another word (Passport, Tokenizer).
+      const parts = name.split(/[_.\-\s]+|(?<=[a-z])(?=[A-Z])/).map((p) => p.toLowerCase()).filter(Boolean);
+      const whole = parts.some((p, i) =>
+        ['password', 'passwd', 'passcode', 'pwd', 'pw', 'pass', 'secret', 'token', 'apikey', 'passphrase'].includes(p)
+        || (p === 'key' && ['api', 'access', 'private', 'secret'].includes(parts[i - 1] ?? ''))
+        || (p === 'token' && ['access', 'auth'].includes(parts[i - 1] ?? '')));
+      if (!whole) return false;
+      const rest = parts.filter((p) => !['password', 'passwd', 'passcode', 'pwd', 'pw', 'pass', 'secret', 'token', 'api', 'key', 'apikey', 'access', 'auth', 'client', 'private', 'aws', 'db'].includes(p)).join('_');
+      if (CREDENTIAL_SETTING.test(rest)) return false;
+      if (v.length < 4 || MASKED.test(v) || PLACEHOLDER.test(v)) return false;
+      return true;
+    },
+  },
+  {
+    category: 'cat1', label: 'credential',
+    // Secrets stated in prose: "the temporary password is Winter2026!fern".
+    re: /\b(?:password|passcode|pin|passphrase)\s+(?:is|was|will be|has been set to|set to)\s+["']?([^\s"',;]{4,})/gi,
     group: 1,
-    check: (v) => !/^(?:\*+|x+|<[^>]*>|\$\{?[A-Z_]+\}?|changeme|required|none|null|n\/a|tbc|tbd)$/i.test(v),
+    trimPunct: true,
+    check: (v) => !MASKED.test(v) && !PLACEHOLDER.test(v) && !/^(?:required|unchanged|the|a|an|still|now|being|not|valid|strong|weak|correct|incorrect|expired|changed|reset)$/i.test(v),
   },
   { category: 'cat1', label: 'credential', re: /\bAKIA[0-9A-Z]{16}\b/g },
+  // Bearer tokens in an Authorization header, and JWTs anywhere (three base64url segments, header starts eyJ).
+  { category: 'cat1', label: 'credential', re: /\bBearer\s+([A-Za-z0-9._~+/-]{16,}=*)/g, group: 1 },
+  { category: 'cat1', label: 'credential', re: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g },
   { category: 'cat1', label: 'credential', re: /\bsk-[A-Za-z0-9_-]{20,}/g },
   { category: 'cat1', label: 'credential', re: /\b(?:ghp|gho|github_pat)_[A-Za-z0-9_]{20,}/g },
   { category: 'cat1', label: 'private key', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g },
   {
     category: 'cat1', label: 'payment card',
-    re: /(?<![\w.-])(?:\d[ -]?){12,18}\d(?![\w.-])/g,
+    // Sentence punctuation may follow the number ("…4242."), but not more digits ("4242.50").
+    re: /(?<![\w.-])(?:\d[ -]?){12,18}\d(?![\w-]|[.,]\d)/g,
     check: (v) => {
       const d = v.replace(/[ -]/g, '');
       if (d.length < 13 || d.length > 19) return false;
@@ -93,7 +179,11 @@ const RULES: Rule[] = [
   },
 
   // ── Category 2 ──
-  { category: 'cat2', label: 'email', re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g },
+  {
+    category: 'cat2', label: 'email',
+    re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g,
+    check: (v) => !isRoleMailbox(v),
+  },
   {
     category: 'cat2', label: 'national insurance number',
     re: /\b(?!BG|GB|NK|KN|TN|NT|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z] ?\d{2} ?\d{2} ?\d{2} ?[A-D]\b/g,
@@ -109,19 +199,42 @@ const RULES: Rule[] = [
   },
   {
     category: 'cat2', label: 'phone number',
-    // UK numbers (07…, 01…, 02…, 03…, +44 …) and international +CC numbers.
-    re: /(?<![\w£$€.,])(?:\+44\s?(?:\(0\)\s?)?|0)[1237](?:[\s-]?\d){8,9}(?!\d|[.,]\d)|(?<![\w£$€])\+(?!44)[1-9]\d{0,2}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,4}(?!\d|[.,]\d)/g,
+    // Personal UK numbers (07 mobile, 01/02 geographic, +44) and international +CC numbers.
+    // Non-geographic business numbers (03xx, 08xx, 09xx) are not personal data.
+    re: /(?<![\w£$€.])(?<!\d,)(?:\+44\s?(?:\(0\)\s?)?[127]|0[127])(?:[\s-]?\d){8,9}(?!\d|[.,]\d)|(?<![\w£$€])\+(?!44)[1-9]\d{0,2}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,4}(?!\d|[.,]\d)/g,
     check: (v) => { const n = v.replace(/\D/g, '').length; return n >= 10 && n <= 15; },
   },
   {
     category: 'cat2', label: 'home address',
     re: /\b(?:GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-Z]{2})\b/g,
-    check: (_v, { lineText }) => ADDRESS_WORDS.test(lineText) && /\b\d{1,4}[A-Za-z]?\s+[A-Z][a-z]+/.test(lineText),
+    check: (_v, { text, lineText, lineStart }) => {
+      // The address is on this line, or (for a letter's address block) on the few lines above.
+      const looksLikeStreet = (s: string) => ADDRESS_WORDS.test(s) && /\b\d{1,4}[A-Za-z]?\s+[A-Z][a-z]+/.test(s);
+      if (BUSINESS_ADDRESS.test(lineText)) return false;
+      if (looksLikeStreet(lineText)) return true;
+      const before = text.slice(0, lineStart).split('\n').slice(-4, -1);
+      const isBlockLine = lineText.trim().length <= 10; // the postcode stands alone on its line
+      return isBlockLine && before.some(looksLikeStreet) && !before.some((l) => BUSINESS_ADDRESS.test(l));
+    },
   },
   {
     category: 'cat2', label: 'date of birth',
     re: new RegExp(`\\b(?:\\d{1,2}[\\/.-]\\d{1,2}[\\/.-](?:19|20)?\\d{2}|\\d{1,2}(?:st|nd|rd|th)? ${MONTHS},? (?:19|20)\\d{2}|(?:19|20)\\d{2}-\\d{2}-\\d{2})\\b`, 'gi'),
-    check: (_v, { text, index }) => /\b(?:dob|d\.o\.b\.?|date of birth|born|birth ?date)\b/i.test(text.slice(Math.max(0, index - 40), index)),
+    check: (_v, { text, index, lineText, lineStart }) => {
+      // A CSV column headed dob / date of birth.
+      const header = csvHeaderFor(text, lineText, index, lineStart);
+      if (header !== null) return DOB_LABEL.test(header) || /^(?:birth|birthday)$/.test(header);
+      // Otherwise the nearest preceding label on the line must be a date-of-birth label:
+      // "DOB 02/11/1971" yes; "Date of birth: 1979-03-14   Appointed: 2016-05-01" only for the first date.
+      const prefix = text.slice(Math.max(lineStart, index - 40), index);
+      // The trailing "0" stands in for the date itself so "born 14 March" ends in a digit.
+      const labels = [...`${prefix}0`.matchAll(/([A-Za-z][A-Za-z. ]{1,24})(?::|\s(?=\d))/g)];
+      const nearest = labels.length ? labels[labels.length - 1][1] : prefix;
+      if (!DOB_LABEL.test(nearest)) return false;
+      // No other date between the label and this one.
+      const afterLabel = labels.length ? prefix.slice((labels[labels.length - 1].index ?? 0)) : prefix;
+      return !/\d{1,4}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(afterLabel.replace(/[^\n]*$/, '').slice(0, -1));
+    },
   },
 ];
 
@@ -150,10 +263,13 @@ export function detect(text: string, terms: SensitiveTerm[] = []): Hit[] {
   for (const r of rules) {
     r.re.lastIndex = 0;
     for (const m of text.matchAll(r.re)) {
-      const value = r.group ? m[r.group] : m[0];
+      let value = r.group ? m[r.group] : m[0];
       if (!value) continue;
-      const index = r.group ? (m.index ?? 0) + m[0].indexOf(value) : m.index ?? 0;
-      if (r.check && !r.check(value, { text, index, lineText: lineTextAt(index) })) continue;
+      const index = r.group ? (m.index ?? 0) + m[0].lastIndexOf(value) : m.index ?? 0;
+      if (r.trimPunct) value = value.replace(/[).,;:!?\]]+$/, (p) => (/[!?]/.test(p) && value.length - p.length >= 4 ? p.replace(/[).,;:\]]+$/, '') : ''));
+      if (!value) continue;
+      const lineStart = lineStarts[lineOf(index)];
+      if (r.check && !r.check(value, { text, index, lineText: lineTextAt(index), lineStart, match: m })) continue;
       hits.push({ category: r.category, label: r.label, match: redactValue(value), index, length: value.length, line: lineOf(index) + 1 });
     }
   }

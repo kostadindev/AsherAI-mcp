@@ -1,0 +1,67 @@
+{
+  "spans": [
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "PK 19 60 47 A",
+      "start": 95,
+      "end": 108
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "LS6 2AB",
+      "start": 129,
+      "end": 136
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "14/03/1991",
+      "start": 138,
+      "end": 148
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "SN 72 05 18 B",
+      "start": 184,
+      "end": 197
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "YO1 7HU",
+      "start": 217,
+      "end": 224
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "02/11/1984",
+      "start": 226,
+      "end": 236
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "TC 33 84 09 D",
+      "start": 268,
+      "end": 281
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "HU1 1AA",
+      "start": 304,
+      "end": 311
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "27/06/1996",
+      "start": 313,
+      "end": 323
+    }
+  ]
+}

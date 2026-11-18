@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "Winter2026!fern",
+      "start": 175,
+      "end": 190
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+Payment instruction to Irish subcontractor
+Beneficiary: Doyle Joinery Ltd
+IBAN: IE29 AIBK 9311 5212 3456 78
+UK collection account: GB82 WEST 1234 5698 7654 32
+Amount: €4,200.00   Reference: DJ-2026-004

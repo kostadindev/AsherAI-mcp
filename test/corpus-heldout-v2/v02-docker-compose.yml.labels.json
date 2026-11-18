@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "pg-Fern!2026-db",
+      "start": 119,
+      "end": 134
+    },
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "ek_3fH8kQ1mZ7pW2xR9",
+      "start": 280,
+      "end": 299
+    }
+  ]
+}

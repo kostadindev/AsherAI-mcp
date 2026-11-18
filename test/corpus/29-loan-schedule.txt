@@ -1,0 +1,8 @@
+Schedule 1: Repayment schedule, facility LN-0049
+
+Repayment date   Principal (£)   Balance after (£)   Interest rate
+1 Jan 2025       30,000          120,000             6.0%
+1 Jan 2026       30,000           90,000             6.0%
+1 Jan 2027       30,000           60,000             6.0%
+1 Jan 2028       30,000           30,000             6.0%
+1 Jan 2029       30,000                0             6.0%

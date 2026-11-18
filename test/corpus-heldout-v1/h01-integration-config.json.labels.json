@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "Lk9#vQ2!pZx7",
+      "start": 148,
+      "end": 160
+    },
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "tok_live_7Hq2Lm9Px4Rt8Vb1",
+      "start": 179,
+      "end": 204
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+employee,role,annual_salary,dec_gross,ni_number,home_address,dob
+Priya Shah,Analyst,48000,4000,PK 19 60 47 A,"12 Elm Road, Leeds LS6 2AB",14/03/1991
+Tom Reid,Senior Analyst,61000,5083,SN 72 05 18 B,"4 Mill Lane, York YO1 7HU",02/11/1984
+Ana Costa,Associate,39000,3250,TC 33 84 09 D,"88 Bank Street, Hull HU1 1AA",27/06/1996
+Total,,148000,12333,,,

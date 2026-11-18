@@ -1,0 +1,8 @@
+CORPORATION TAX COMPUTATION, YEAR ENDED 31 DECEMBER 2025
+Company UTR 1234567890
+
+Profit before tax                    145,500
+Add back depreciation                 27,000
+Less capital allowances              (36,000)
+Taxable profit                       136,500
+Tax at 25% less marginal relief       31,170

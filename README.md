@@ -93,8 +93,40 @@ Resources: `trialrun://report`, `trialrun://audit-log`, and in scenario mode `tr
 | 1, prohibited | Labelled credentials, AWS / `sk-` / GitHub keys, private keys, Luhn-valid card numbers, passport numbers next to "passport", your cat1 terms |
 | 2, not for AI | Emails, phone numbers, UK NI numbers, UK home addresses, IBANs, sort code + account, dates of birth, your cat2 terms |
 
-Tuned for few false positives, not completeness. Names on their own aren't detected (add them as terms);
-non-UK identity numbers, addresses without a UK postcode and unlabelled secrets are missed.
+What counts as restricted:
+- **Emails:** personal addresses are flagged. Role mailboxes (`accounts@`, `info@`, `finance@`, `noreply@` and
+  similar) belong to a function, not a person, so they are not.
+- **Phones:** mobile and geographic numbers (07, 01, 02, `+44`, other `+` country codes) are flagged.
+  Non-geographic business numbers (03, 08, 09) are not.
+- **Addresses:** home addresses are flagged; the postcode is the span. Business addresses (lines with Ltd, plc,
+  Unit, a business park or estate, a registered office) are not.
+- **Bank details:** sort code + account number and IBANs are always flagged.
+
+### Measured accuracy
+
+`npm run eval` scores the detectors against labelled corpora of fictional accounting documents (payroll,
+bank exports, invoices, loan agreements, emails, configs, audit working papers). A hit counts when its label
+matches and its span overlaps a labelled span.
+
+| Corpus | Documents | Labelled items | Precision | Recall |
+|---|---|---|---|---|
+| Tuning (`test/corpus`), used while developing | 40 | 77 | 100% | 100% |
+| Held-out v1 (`test/corpus-heldout-v1`), its misses were then fixed, now a regression set | 10 | 28 | 100% | 100% |
+| Held-out v2 (`test/corpus-heldout-v2`), written after those fixes, never tuned on | 12 | 22 | 90.0% | 81.8% |
+
+The tuning corpus gates the run (precision and recall at least 95%, and at least 90% recall for every label
+with five or more items). **Held-out v2 is the honest estimate.** Before v1 was fixed, it scored 100% precision
+and 85.7% recall. One v2 label was corrected after the first run: a sort code and account in a JSON expense
+export were restricted under the policy but had been left unlabelled.
+
+Known misses on held-out v2:
+- Role mailboxes outside the built-in list (for example `disputes@`) are flagged as personal.
+- A date-of-birth CSV column headed `date_of_birth` (underscores) is not recognised.
+- A postcode in its own CSV column, with no street on the line, is not flagged as a home address.
+- A business postcode on a letterhead line is flagged when the company name ("plc") is on the line above.
+
+Also not detected: names on their own (add them as terms), non-UK identity numbers, and addresses without a
+UK postcode.
 
 ## Limitations
 
@@ -108,6 +140,8 @@ non-UK identity numbers, addresses without a UK postcode and unlabelled secrets 
 ```bash
 npm install
 npm test        # builds, then: 52 detector cases, scenario smoke test, workspace smoke test
+npm run eval    # precision and recall on the tuning, held-out v1 and held-out v2 corpora
+npm run corpus  # regenerate the corpora from test/corpus*-src.ts
 ```
 
 | Variable | Default | Meaning |

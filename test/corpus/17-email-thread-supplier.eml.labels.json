@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "lena.vogt@holzwerk.example.de",
+      "start": 292,
+      "end": 321
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+49 151 2345 6789",
+      "start": 360,
+      "end": 377
+    }
+  ]
+}

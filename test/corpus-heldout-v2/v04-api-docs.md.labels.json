@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzYW5kYm94In0.Qm9ndXNTaWduYXR1cmU",
+      "start": 251,
+      "end": 331
+    }
+  ]
+}

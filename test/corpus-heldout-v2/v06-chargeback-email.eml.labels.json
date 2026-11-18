@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "5200828282828210",
+      "start": 211,
+      "end": 227
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "020 7946 0777",
+      "start": 308,
+      "end": 321
+    }
+  ]
+}

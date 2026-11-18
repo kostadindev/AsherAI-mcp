@@ -1,0 +1,8 @@
+BANK RECONCILIATION AT 31 DECEMBER 2025
+
+Balance per bank statement                41,870.00
+Add: lodgements not yet credited           1,250.00
+Less: unpresented cheques 104412, 104415  (3,410.25)
+Balance per cash book                      39,709.75
+Difference                                      0.00
+Prepared 05/01/2026, cheque run 2025-52, batch 0091 2284 7713.

@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+353 87 555 0142",
+      "start": 87,
+      "end": 103
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+1 212 555 0199",
+      "start": 122,
+      "end": 137
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+49 151 2345 6789",
+      "start": 158,
+      "end": 175
+    }
+  ]
+}

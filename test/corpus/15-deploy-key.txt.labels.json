@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "private key",
+      "category": "cat1",
+      "text": "-----BEGIN OPENSSH PRIVATE KEY-----",
+      "start": 71,
+      "end": 106
+    }
+  ]
+}

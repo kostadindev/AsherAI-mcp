@@ -17,7 +17,9 @@
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "test": "npm run build && tsx test/detectors.test.ts && tsx test/smoke.ts && tsx test/smoke-workspace.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "eval": "tsx test/eval-detectors.ts",
+    "corpus": "tsx test/corpus-src.ts && tsx test/corpus-heldout-v1-src.ts && tsx test/corpus-heldout-v2-src.ts"
   },
   "keywords": [
     "mcp",

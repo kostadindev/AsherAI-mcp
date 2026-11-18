@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "30-90-12,61123987",
+      "start": 168,
+      "end": 185
+    },
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "60-83-71,10442209",
+      "start": 298,
+      "end": 315
+    },
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "20-45-77,30918264",
+      "start": 436,
+      "end": 453
+    }
+  ]
+}

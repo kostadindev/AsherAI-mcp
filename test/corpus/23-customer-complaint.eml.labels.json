@@ -1,0 +1,32 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "helen.marsh1972@example.com",
+      "start": 19,
+      "end": 46
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB6 1DN",
+      "start": 166,
+      "end": 173
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900321",
+      "start": 240,
+      "end": 252
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "01353 960 412",
+      "start": 268,
+      "end": 281
+    }
+  ]
+}

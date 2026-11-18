@@ -1,0 +1,12 @@
+staff:
+  - name: Ravi Menon
+    role: Payroll Officer
+    mobile: "+44 (0)7700 900222"
+    email: ravi.menon.personal@example.org
+    ni: AB123456C
+  - name: Chloe Evans
+    role: Trainee Accountant
+    mobile: "07700900333"
+    email: chloe_evans@example.net
+    d.o.b.: 3 May 2001
+team_inbox: payroll@fernvale.example.co.uk

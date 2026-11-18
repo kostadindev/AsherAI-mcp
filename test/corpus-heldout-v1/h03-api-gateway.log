@@ -1,0 +1,4 @@
+2026-01-14T08:02:11Z INFO  request id=7f3a2c path=/v1/ledger status=200 ms=41
+2026-01-14T08:02:12Z WARN  auth header Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmZXJudmFsZSJ9.4bX9q
+2026-01-14T08:02:15Z INFO  export rows=4821 period=2025-12 build=20260110
+2026-01-14T08:03:00Z ERROR db connect failed host=10.0.4.12 port=5432 attempt=3

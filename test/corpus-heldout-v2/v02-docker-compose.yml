@@ -1,0 +1,14 @@
+services:
+  ledger-db:
+    image: postgres:16.2
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: "pg-Fern!2026-db"
+      POSTGRES_DB: ledger
+    ports:
+      - "5432:5432"
+  exporter:
+    image: fernvale/exporter:2.4.0
+    environment:
+      EXPORT_API_KEY: 'ek_3fH8kQ1mZ7pW2xR9'
+      EXPORT_SCHEDULE: "0 2 * * *"

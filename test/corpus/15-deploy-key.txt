@@ -1,0 +1,7 @@
+Deployment notes for the reconciliation bot. Do not commit this file.
+
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+-----END OPENSSH PRIVATE KEY-----
+
+Host: recon.internal.example  Port 2222  User: recon

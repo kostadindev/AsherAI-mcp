@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "mark.ellis@haldenretail.example.co.uk",
+      "start": 85,
+      "end": 122
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900123",
+      "start": 296,
+      "end": 308
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "0113 496 0123",
+      "start": 390,
+      "end": 403
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+[
+  {"claim": "EC-2026-007", "employee": "Aisha Khalid", "amount": 182.40, "category": "travel", "approved": true},
+  {"claim": "EC-2026-008", "employee": "Tomasz Nowak", "amount": 96.20, "category": "tools", "approved": true,
+   "reimburse_to": {"sort_code": "09-01-28", "account": "77341920"}},
+  {"claim": "EC-2026-009", "employee": "Grace Whitfield", "amount": 45.00, "category": "subsistence", "approved": false}
+]

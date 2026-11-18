@@ -1,0 +1,39 @@
+{
+  "spans": [
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "HZ 55 10 72 B",
+      "start": 81,
+      "end": 94
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "1990-08-21",
+      "start": 110,
+      "end": 120
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "grace.w.home@example.org",
+      "start": 137,
+      "end": 161
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB8 0QE",
+      "start": 194,
+      "end": 201
+    },
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "09-01-28 account 77341920",
+      "start": 256,
+      "end": 281
+    }
+  ]
+}

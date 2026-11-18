@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "HU1 1AA",
+      "start": 84,
+      "end": 91
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "27 June 1996",
+      "start": 107,
+      "end": 119
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900987",
+      "start": 128,
+      "end": 140
+    }
+  ]
+}

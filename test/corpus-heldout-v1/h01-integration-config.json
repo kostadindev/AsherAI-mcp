@@ -1,0 +1,10 @@
+{
+  "service": "bank-feed",
+  "version": "1.8.3",
+  "endpoint": "https://feeds.example-bank.test/v2",
+  "username": "fernvale_feed",
+  "password": "Lk9#vQ2!pZx7",
+  "api_token": "tok_live_7Hq2Lm9Px4Rt8Vb1",
+  "retry_limit": 5,
+  "timeout_seconds": 30
+}

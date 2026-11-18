@@ -1,0 +1,13 @@
+name: nightly-export
+on:
+  schedule:
+    - cron: "0 3 * * *"
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run export
+        env:
+          LEDGER_TOKEN: ${{ secrets.LEDGER_TOKEN }}
+          REPORT_EMAIL: finance@fernvale.example.co.uk

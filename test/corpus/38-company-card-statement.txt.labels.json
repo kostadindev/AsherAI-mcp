@@ -1,0 +1,11 @@
+{
+  "spans": [
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "5105 1051 0510 5100",
+      "start": 75,
+      "end": 94
+    }
+  ]
+}

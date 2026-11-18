@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "nat.brooks@example.com",
+      "start": 24,
+      "end": 46
+    },
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "4242-4242-4242-4242",
+      "start": 188,
+      "end": 207
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "BA2 4QR",
+      "start": 247,
+      "end": 254
+    }
+  ]
+}

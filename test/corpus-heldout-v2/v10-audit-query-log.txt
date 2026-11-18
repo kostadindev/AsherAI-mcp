@@ -1,0 +1,6 @@
+AUDIT QUERY LOG, FY2025
+Q-01 Purchases ledger total 612,000 agrees to TB (ref C2.1). Cleared 08/01/2026.
+Q-02 Roof repair RR-0917 £18,000: expensed under IAS 16 para 12. Cleared 09/01/2026.
+Q-03 Halden Retail £14,600: administration 18/12/2025, provided in full. Cleared 09/01/2026.
+Q-04 Laptop useful life 4 years (policy v2.1). Cleared 10/01/2026.
+Materiality £25,000. Next review 20/01/2026.

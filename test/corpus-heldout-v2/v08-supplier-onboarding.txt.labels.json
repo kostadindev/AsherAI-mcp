@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "40-11-62 account 98765432",
+      "start": 256,
+      "end": 281
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900555",
+      "start": 333,
+      "end": 345
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "mark.brightman@example.com",
+      "start": 347,
+      "end": 373
+    }
+  ]
+}

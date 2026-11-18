@@ -1,0 +1,4 @@
+supplier,address,contact_email,phone,sort_code,account_no
+Pixelpoint Systems Ltd,"Unit 2, Science Park, Cambridge CB4 0WS",sales@pixelpoint.example.co.uk,0345 900 1100,30-90-12,61123987
+Northwind Energy plc,"Northwind House, 1 Energy Way, Leeds LS1 4DY",billing@northwind.example.com,0333 202 0202,60-83-71,10442209
+Ridgeway Roofing Ltd,"Unit 7, Kiln Lane Business Park, Newmarket CB8 7AA",accounts@ridgeway.example.co.uk,0345 600 7788,20-45-77,30918264

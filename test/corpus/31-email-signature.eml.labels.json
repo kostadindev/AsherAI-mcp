@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "aisha.khalid@fernvalekitchens.example.co.uk",
+      "start": 20,
+      "end": 63
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900654",
+      "start": 215,
+      "end": 227
+    }
+  ]
+}

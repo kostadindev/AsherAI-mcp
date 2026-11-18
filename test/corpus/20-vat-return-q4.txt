@@ -1,0 +1,9 @@
+VAT RETURN, PERIOD 10/25 TO 12/25
+VAT registration number: GB 318 2214 60
+
+Box 1 VAT due on sales               52,310.40
+Box 4 VAT reclaimed on purchases     31,882.15
+Box 5 Net VAT to pay                 20,428.25
+Box 6 Total sales ex VAT            261,552.00
+Box 7 Total purchases ex VAT        159,410.75
+Submitted 07/02/2026, receipt 1739 8821 0044.

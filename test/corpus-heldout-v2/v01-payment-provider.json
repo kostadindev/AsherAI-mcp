@@ -1,0 +1,12 @@
+{
+  "provider": "cardpay",
+  "merchant_id": "MID-0049-2281",
+  "environment": "live",
+  "credentials": {
+    "client_id": "fernvale-web",
+    "client_secret": "cs_9Tq4Lm2Vx8Pn6Rw1Zk3",
+    "webhook_signing_key": "whsec_EXAMPLEONLY"
+  },
+  "settlement_account": { "iban": "GB33BUKB20201555555555", "currency": "GBP" },
+  "retry": { "max_attempts": 4, "backoff_ms": 500 }
+}

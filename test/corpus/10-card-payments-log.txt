@@ -1,0 +1,6 @@
+Card payments taken by phone, December 2025 (to be destroyed after processing)
+
+12/12/2025  £1,250.00  Card 4111 1111 1111 1111  exp 09/27  auth 482913
+14/12/2025  £  640.00  Card 5555 5555 5555 4444  exp 01/28  auth 551204
+19/12/2025  £3,100.00  Card 378282246310005  exp 11/26  auth 610077
+22/12/2025  £  220.00  Card **** **** **** 1234 (stored token tok_8812)

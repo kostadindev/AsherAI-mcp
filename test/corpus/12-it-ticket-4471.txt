@@ -1,0 +1,5 @@
+Ticket #4471   Opened 03/01/2026 by Aisha Khalid
+Issue: locked out of the accounting portal after the password change.
+Resolution: account unlocked. The temporary password is Winter2026!fern and must be changed at next login.
+Also confirmed the password policy is unchanged (12 characters minimum).
+Time spent: 0.5 hours. Asset tag IT-2291.

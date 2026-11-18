@@ -1,0 +1,32 @@
+{
+  "spans": [
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "sarah.pritchard@example.com",
+      "start": 155,
+      "end": 182
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900456",
+      "start": 183,
+      "end": 195
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "dan.mercer84@example.net",
+      "start": 318,
+      "end": 342
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+44 7700 900789",
+      "start": 343,
+      "end": 358
+    }
+  ]
+}

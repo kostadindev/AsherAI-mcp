@@ -1,0 +1,6 @@
+SUPPLIER ONBOARDING: Brightline Glazing Ltd
+Registered office: Unit 12, Fen Road Industrial Estate, Cambridge CB4 1UN
+Company number 11223344, VAT GB 412 7788 31
+Accounts contact: accounts@brightline.example.co.uk, 0345 112 2334
+Remittance bank: sort code 40-11-62 account 98765432
+Owner's personal guarantee: Mark Brightman, mobile 07700 900555, mark.brightman@example.com

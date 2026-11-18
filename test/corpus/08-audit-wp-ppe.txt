@@ -1,0 +1,10 @@
+WORKING PAPER C4: PROPERTY, PLANT AND EQUIPMENT       Prepared: AK 05/01/2026  Reviewed: TR 08/01/2026
+Template version 3.2.1   Engagement ref ENG-2025-0412
+
+Sample  Asset ID     Description                 Cost (£)    Verified
+1       FA-000231    CNC router                  48,500      Yes, invoice 7710233
+2       FA-000245    Edge bander                 31,200      Yes, invoice 7710291
+3       FA-000301    12 x laptops                12,000      Yes, invoice PX-55102
+
+Materiality £25,000; performance materiality £18,750 (75%).
+Conclusion: PPE is fairly stated at 31/12/2025 subject to the depreciation adjustment in C4.3.

@@ -1,0 +1,5 @@
+settlement_date,order_ref,card_number,card_type,amount_gbp,status
+2026-01-12,SO-2311,4000056655665556,visa_debit,1250.00,settled
+2026-01-12,SO-2312,************1881,visa,640.50,settled
+2026-01-13,SO-2315,5200 8282 8282 8210,mastercard,3100.00,chargeback
+2026-01-14,SO-2319,4111********1111,visa,220.00,refunded

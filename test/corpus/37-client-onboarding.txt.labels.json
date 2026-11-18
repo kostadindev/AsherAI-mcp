@@ -1,0 +1,39 @@
+{
+  "spans": [
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "05/09/1973",
+      "start": 84,
+      "end": 94
+    },
+    {
+      "label": "passport number",
+      "category": "cat1",
+      "text": "548812093",
+      "start": 112,
+      "end": 121
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB7 4HB",
+      "start": 154,
+      "end": 161
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "m.ashby@example.co.uk",
+      "start": 169,
+      "end": 190
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "WP 81 02 33 A",
+      "start": 202,
+      "end": 215
+    }
+  ]
+}

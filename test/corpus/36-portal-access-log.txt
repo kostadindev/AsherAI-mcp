@@ -1,0 +1,4 @@
+2026-01-03 09:12:44 user=a.khalid action=password_reset status=link_sent
+2026-01-03 09:15:02 user=a.khalid action=login status=ok mfa=totp
+2026-01-03 09:15:40 user=a.khalid action=export period=2025-12 rows=4821
+Note: passwords are never written to this log (password: ********).

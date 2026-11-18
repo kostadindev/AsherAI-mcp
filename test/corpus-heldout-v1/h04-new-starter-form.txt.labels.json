@@ -1,0 +1,39 @@
+{
+  "spans": [
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "30.09.1999",
+      "start": 45,
+      "end": 55
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700 900444",
+      "start": 61,
+      "end": 73
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "NR2 3LQ",
+      "start": 115,
+      "end": 122
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "CE 64 29 90 D",
+      "start": 131,
+      "end": 144
+    },
+    {
+      "label": "bank account",
+      "category": "cat2",
+      "text": "11-22-33 / account 44556677",
+      "start": 161,
+      "end": 188
+    }
+  ]
+}

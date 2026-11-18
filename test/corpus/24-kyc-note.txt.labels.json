@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "passport number",
+      "category": "cat1",
+      "text": "553829174",
+      "start": 91,
+      "end": 100
+    },
+    {
+      "label": "passport number",
+      "category": "cat1",
+      "text": "761204338",
+      "start": 155,
+      "end": 164
+    }
+  ]
+}

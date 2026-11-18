@@ -1,0 +1,39 @@
+{
+  "spans": [
+    {
+      "label": "passport number",
+      "category": "cat1",
+      "text": "925076473",
+      "start": 77,
+      "end": 86
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "11/12/1982",
+      "start": 132,
+      "end": 142
+    },
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "BS8 2RT",
+      "start": 188,
+      "end": 195
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "lucy.hale@example.co.uk",
+      "start": 205,
+      "end": 228
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "0117 496 0812",
+      "start": 230,
+      "end": 243
+    }
+  ]
+}

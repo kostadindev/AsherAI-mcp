@@ -1,0 +1,25 @@
+{
+  "spans": [
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "4111 1111 1111 1111",
+      "start": 108,
+      "end": 127
+    },
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "5555 5555 5555 4444",
+      "start": 180,
+      "end": 199
+    },
+    {
+      "label": "payment card",
+      "category": "cat1",
+      "text": "378282246310005",
+      "start": 252,
+      "end": 267
+    }
+  ]
+}

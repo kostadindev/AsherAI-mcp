@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "IBAN",
+      "category": "cat2",
+      "text": "DE89370400440532013000",
+      "start": 61,
+      "end": 83
+    },
+    {
+      "label": "IBAN",
+      "category": "cat2",
+      "text": "NL91ABNA0417164300",
+      "start": 134,
+      "end": 152
+    }
+  ]
+}

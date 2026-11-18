@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "home address",
+      "category": "cat2",
+      "text": "CB1 9XY",
+      "start": 144,
+      "end": 151
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "14/03/1979",
+      "start": 248,
+      "end": 258
+    }
+  ]
+}

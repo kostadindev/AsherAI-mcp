@@ -1,0 +1,18 @@
+{
+  "spans": [
+    {
+      "label": "credential",
+      "category": "cat1",
+      "text": "cs_9Tq4Lm2Vx8Pn6Rw1Zk3",
+      "start": 160,
+      "end": 182
+    },
+    {
+      "label": "IBAN",
+      "category": "cat2",
+      "text": "GB33BUKB20201555555555",
+      "start": 272,
+      "end": 294
+    }
+  ]
+}

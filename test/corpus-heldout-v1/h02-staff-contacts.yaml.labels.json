@@ -1,0 +1,46 @@
+{
+  "spans": [
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "+44 (0)7700 900222",
+      "start": 67,
+      "end": 85
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "ravi.menon.personal@example.org",
+      "start": 98,
+      "end": 129
+    },
+    {
+      "label": "national insurance number",
+      "category": "cat2",
+      "text": "AB123456C",
+      "start": 138,
+      "end": 147
+    },
+    {
+      "label": "phone number",
+      "category": "cat2",
+      "text": "07700900333",
+      "start": 212,
+      "end": 223
+    },
+    {
+      "label": "email",
+      "category": "cat2",
+      "text": "chloe_evans@example.net",
+      "start": 236,
+      "end": 259
+    },
+    {
+      "label": "date of birth",
+      "category": "cat2",
+      "text": "3 May 2001",
+      "start": 272,
+      "end": 282
+    }
+  ]
+}

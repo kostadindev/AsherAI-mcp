@@ -1,0 +1,4 @@
+Rates used for translation at 31/12/2025: EUR 1.1612, USD 1.2531.
+Steel price index 2025: 214.6 (2024: 221.9). Inflation assumption 2.75%.
+Price list v4.12.0 effective 01/02/2026: Fen Oak door £129.00, carcass £84.50.
+Purchase order numbers issued: 88213 to 88290.

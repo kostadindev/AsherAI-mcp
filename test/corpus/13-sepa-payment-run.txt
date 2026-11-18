@@ -1,0 +1,8 @@
+SEPA PAYMENT RUN 2026-01-09
+
+Supplier                 IBAN                                   BIC          Amount (EUR)
+Holzwerk GmbH            DE89 3704 0044 0532 0130 00          COBADEFFXXX  12,480.00
+Atelier Lumiere SARL     FR14 2004 1010 0505 0001 3M02 606    PSSTFRPPXXX   3,920.50
+Dutch Hinge BV           NL91 ABNA 0417 1643 00               ABNANL2A      1,105.00
+
+Batch ref SEPA-0109-03. Approved by T. Ashby.

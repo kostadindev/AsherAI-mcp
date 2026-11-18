@@ -1,0 +1,5 @@
+customer_id,name,email,mobile,town,credit_limit
+C-1001,Holt & Daughters,accounts@holtdaughters.example.co.uk,,Bury St Edmunds,25000
+C-1002,Sarah Pritchard,sarah.pritchard@example.com,07700 900456,Soham,5000
+C-1003,Larchmont Homes,info@larchmonthomes.example.co.uk,0345 222 0199,Peterborough,40000
+C-1004,Daniel Mercer,dan.mercer84@example.net,+44 7700 900789,Bury St Edmunds,3000
