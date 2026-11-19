@@ -6,7 +6,8 @@
   "type": "module",
   "bin": {
     "trialrun-mcp": "dist/bin/server.js",
-    "trialrun-policy": "dist/bin/policy.js"
+    "trialrun-policy": "dist/bin/policy.js",
+    "trialrun-demo": "dist/bin/demo.js"
   },
   "files": [
     "dist",
@@ -20,6 +21,7 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "test:package": "tsx scripts/package-smoke.ts",
+    "test:online": "tsx scripts/online-smoke.ts",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "check": "npm run typecheck && npm run lint && npm run coverage",

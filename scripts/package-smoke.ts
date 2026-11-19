@@ -25,7 +25,7 @@ try {
   const [pack] = packed;
   if (!pack) throw new Error('npm pack produced nothing');
   const paths = pack.files.map((f) => f.path);
-  check(paths.includes('dist/bin/server.js') && paths.includes('dist/bin/policy.js'), 'tarball contains both bins');
+  check(['server', 'policy', 'demo'].every((b) => paths.includes(`dist/bin/${b}.js`)), 'tarball contains all three bins');
   check(!paths.some((p) => p.startsWith('src/') || p.startsWith('test/') || p.startsWith('accuracy/')), 'tarball has no sources, tests or corpora');
 
   const project = join(work, 'project');
@@ -48,6 +48,9 @@ try {
   const report = (await client.callTool({ name: 'get_report', arguments: {} })) as { content: { text: string }[] };
   check(report.content[0]?.text.includes('Data stewardship') ?? false, 'server renders a report');
   await client.close();
+
+  const demo = execFileSync(process.execPath, [bin('demo'), join(work, 'demo')], { cwd: project, encoding: 'utf8' });
+  check(demo.includes('Demo complete.') && demo.includes('Refused: Access denied'), 'installed trialrun-demo runs end to end');
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
